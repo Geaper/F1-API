@@ -92,3 +92,6 @@ stardust.log.*
 
 carnot.log
 carnot.log.*
+
+mvnw
+mvnw.*

@@ -14,7 +14,8 @@ function setup() {
 
 function draw() {
   background(0);
-  stroke(255);
+  stroke(0);
+  fill(255,6,0);
   triangle(0, 0, 0, height, width/2, 0);
 }
 

@@ -1,6 +1,12 @@
-private HashMap<Integer, Season> seasons = new HashMap<Integer, Season>();
-private HashMap<String, Driver> drivers = new HashMap<String, Driver>();
-private HashMap<String, Circuit> circuits = new HashMap<String, Circuit>();
+import java.util.Map;
+
+// API URL
+private static final String apiURL = "https://ergast.com/api/f1/";
+private JSONArray circuitsJSON;
+
+private HashMap<String, JSONObject> circuitsMap = new HashMap<String, JSONObject>();
+
+
 private int currentPage = 0;
 
 // Images
@@ -14,6 +20,9 @@ private final int canvasHeight = 900;
 
 // Buttons
 
+// Current Circuit
+private String currentCircuitID;
+
 
 void settings() {
     size(canvasWidth, canvasHeight);
@@ -21,42 +30,25 @@ void settings() {
 
 void setup() {
   
+  // Get necessary data from the API
+  // Load All the Circuits
+  JSONObject data = loadJSONObject(apiURL + "circuits.json").getJSONObject("MRData");
+  circuitsJSON = data.getJSONObject("CircuitTable").getJSONArray("Circuits");
+  // Put them into the hashmap
+  for(int i = 0; i < circuitsJSON.size(); i++) {
+     JSONObject circuitJSON = circuitsJSON.getJSONObject(i);
+     String circuitID = circuitJSON.getString("circuitId"); // Key
+     // Add map coordinates to JSON
+     circuitJSON.setInt("mapX", 550);
+     circuitJSON.setInt("mapY", 625);
+     
+     circuitsMap.put(circuitID, circuitJSON); // Add to Collection
+  }
+ 
   // Common Stuff
   map = loadShape("img/common/world-map.svg");
   f1Logo = loadImage("img/common/f1-logo.png");
   f1Background = loadImage("img/common/f1-background.jpg");
-  
-  // Load Seasons
-  String[] seasonLines = loadStrings("seasons.csv");
-  for(String seasonLine : seasonLines) {
-    String[] params = seasonLine.split(",");
-    int year = Integer.parseInt(params[0]);
-    Season season = new Season(year, params[1]);
-    seasons.put(year, season);
-  }
-  // Load Driver
-  String[] driversLines = loadStrings("driver.csv");
-  for(String driversLine : driversLines) {
-    String[] params = driversLine.split(",");
-    String driverID = params[1];
-    Driver driver = new Driver(driverID, params[2], params[3], params[7], params[3], params[4], params[5], params[6]);
-    drivers.put(driverID, driver);
-  }
-  // Load Circuits
-  String[] circuitLines = loadStrings("circuits.csv");
-  for(String circuitLine : circuitLines) {
-    String[] params = circuitLine.split(",");
-    String circuitID = params[1];
-    Location location = new Location(params[5], params[6], params[3], params[4]);
-    // Map Positions
-    int mapX = -1, mapY = -1;
-    if(params.length > 10) {
-      mapX = Integer.parseInt(params[9]);
-      mapY = Integer.parseInt(params[10]);
-    }
-    Circuit circuit = new Circuit(circuitID, params[8], params[2], location, mapX, mapY);
-    circuits.put(circuitID, circuit);
-  }
 }
 
 void draw() {
@@ -104,29 +96,26 @@ void page1() {
     background(255);
     // Load images
     shape(map, 0, 0, canvasWidth, canvasHeight);
-    fill(255,0,0);
-    // Load All the Circuit Positions
-    for(Circuit circuit : circuits.values()) {
-      ellipse(circuit.getMapX(), circuit.getMapY(),10,10);
-      // When the user hovers the Point
-      if(mouseX < circuit.getMapX() + 10 && mouseX > circuit.getMapX() - 10 && mouseY > circuit.getMapY() - 10 && mouseY < circuit.getMapY() + 10) {
-        // Highlight it
-        ellipse(circuit.getMapX(), circuit.getMapY(),30,30);
-        // Show a simple informative box
-        fill(255);
-        line(circuit.getMapX(), circuit.getMapY(), 200,631);
-        rect(200,631,150,200);
-        // Inside the rect, insert information
-        PImage circuitImage = loadImage("img/circuits/" + circuit.getCircuitID() + ".png");
-        circuitImage.resize(150,200);
-        image(circuitImage,200,631);   
-        // On click, change to page 2
-        if(mousePressed) currentPage = 2;
-      }
+    fill(255,0,0);    
+    // Loop through the circuits
+    for(Map.Entry circuitEntry : circuitsMap.entrySet()) {
+      String circuitID = (String) circuitEntry.getKey(); // Key
+      JSONObject circuitJSON = (JSONObject) circuitEntry.getValue(); // JSONObject
+      // Get coordinates
+      int mapX = (int) circuitJSON.get("mapX");
+      int mapY = (int) circuitJSON.get("mapY");
+      // Draw points on the map
+      ellipse(mapX, mapY, 15, 15);
     }
 }
 
 void page2() {
-  background(0);
-  
+   background(255);
+   PImage circuitImage = loadImage("img/circuits/" + currentCircuitID + ".png");
+   circuitImage.resize(canvasWidth,canvasHeight);
+   image(circuitImage,0,0);   
+   // Buttons For each Season
+   
+   // When the User clicks the season, show the standings for this year on this circuit
+   
 }

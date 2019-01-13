@@ -68,7 +68,7 @@ void draw() {
   // Pages
   switch(currentPage) {
     case 0:
-      page4(); // Intro
+      page0(); // Intro
     break;
     case 1:
       page1(); // Circuit
@@ -84,6 +84,7 @@ void draw() {
     break;
     case 5:
       page5(); // Constructor Details
+    break;
     case 6:
       page6(); // Finishing Statistics (Maybe check the drivers with most accidents, finishes, etc...)
     break;
@@ -230,16 +231,39 @@ void page4()  {
    int incr1 = 1, incr2 = 1;
    for(int i = 0; i < constructorsJSON.size(); i++) {
      JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
-     PImage constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".png"); 
+     PImage constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".png");
+     // TODO
+     if(constructorImage == null) { 
+       constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".jpg");
+     }
+     
      constructorImage.resize(50, 50);
      // List constructors
      if(i < constructorsJSON.size() / 2) {
        image(constructorImage, incr1 * 100, canvasHeight * .33);
        incr1++;
+       
+        // When user hovers the constructor image
+       if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
+         // If user clicks on the image
+         if(mousePressed)  {
+           selectedConstructor = constructorJSON;
+           currentPage = 5;
+         }
+       }
      }
      else if(i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
        image(constructorImage, incr2 * 100, canvasHeight * .66);
        incr2++;
+       
+       // When user hovers the constructor image
+       if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
+         // If user clicks on the image
+         if(mousePressed)  {
+           selectedConstructor = constructorJSON;
+           currentPage = 5;
+         }
+       }
      }
    }
 }

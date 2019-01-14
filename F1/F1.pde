@@ -15,6 +15,7 @@ private int currentPage = 0;
 private PShape map;
 private PImage f1Logo;
 private PImage f1Background;
+private PImage ipcaLogo;
 
 // Default settings
 private final int canvasWidth = 1600;
@@ -28,6 +29,8 @@ private JSONObject selectedRace;
 private JSONObject selectedDriver;
 // Selected Constructor
 private JSONObject selectedConstructor;
+// Selected Season. Defaults to 2018
+private String selectedSeason = "2018";
 
 
 void settings() {
@@ -38,7 +41,7 @@ void setup() {
   
   // Get necessary data from the API
   // Load All the Circuits
-  JSONObject data = loadJSONObject(apiURL + "2018.json").getJSONObject("MRData"); //TODO change year
+  JSONObject data = loadJSONObject(apiURL + selectedSeason + ".json").getJSONObject("MRData"); 
   racesJSON = data.getJSONObject("RaceTable").getJSONArray("Races");
   // Put them into the hashmap
   for(int i = 0; i < racesJSON.size(); i++) {
@@ -47,11 +50,11 @@ void setup() {
      JSONObject circuitJSON = racesJSON.getJSONObject(i).getJSONObject("Circuit");
      String circuitID = circuitJSON.getString("circuitId"); // Key
      // TODO For now only add Brazil)
-     if(circuitID.equals("interlagos")) {
+     if(circuitID.equals("albert_park")) {
        // Add map coordinates to JSON
        // Load coordinates from file
-       circuitJSON.setInt("mapX", 1073);
-       circuitJSON.setInt("mapY", 760);
+       circuitJSON.setInt("mapX", 640);
+       circuitJSON.setInt("mapY", 640);
        
        circuitsMap.put(circuitID, circuitJSON); // Add to Collection
        racesMap.put(round, raceJSON); // Add to collection
@@ -60,15 +63,16 @@ void setup() {
  
   // Common Stuff
   map = loadShape("img/common/world-map.svg");
-  f1Logo = loadImage("img/common/f1-logo.png");
+  f1Logo = loadImage("img/common/f1-logo2.png");
   f1Background = loadImage("img/common/f1-background.jpg");
+  ipcaLogo = loadImage("img/common/ipca.png");
 }
 
 void draw() {
   // Pages
   switch(currentPage) {
     case 0:
-      page0(); // Intro
+      page1(); // Intro
     break;
     case 1:
       page1(); // Circuit
@@ -95,34 +99,67 @@ void draw() {
   }
   // Debug
   fill(255,0,0);
+  textSize(10);
   text("X: " + mouseX + " ,Y: " + mouseY, canvasWidth - 200, 40);
 }
 
 // Page 0
 void page0() {
     // Load Images
+    // Background
     f1Background.resize(canvasWidth, canvasHeight);
     image(f1Background, 0, 0);
-    f1Logo.resize(150,50);
-    image(f1Logo, 0, 0);
-    // Made by
+    // F1 Logo
+    f1Logo.resize(213, 54);
+    image(f1Logo, canvasWidth - 233, canvasHeight - 74);
+    // IPCA Logo
+    ipcaLogo.resize(156, 90);
+    image(ipcaLogo, canvasWidth -233 - 156, canvasHeight -85);
+    
     fill(255);
-    textSize(32);
-    text("Made By:", 10, height/2);
-    textSize(16);
-    text("Tiago Silva", 10, height/2 +30);
-    text("André Monteiro:", 10, height/2 +60);
+    // Title
+    textSize(80);
+    text("Formula 1 Data Visualization", 50, 100); 
+    // Made by
+    textSize(48);
+    text("Made By:", 75, height - 200);
+    textSize(30);
+    text("Tiago Silva 6130", 75, height - 150);
+    text("André Monteiro 16202", 75, height - 100);
     
     // When user clicks any key, go to the next page
     if(keyPressed || mousePressed) currentPage = 1;
 }
 
+void drawSeasonButtons() {
+   // Season Buttons
+    Button btn2015 = new Button(20, 200, 60, 35, "2015");
+    btn2015.display();
+    if(btn2015.hasClicked()) selectedSeason = "2015";
+    Button btn2016 = new Button(20, 250, 60, 35, "2016");
+    btn2016.display();
+    if(btn2016.hasClicked()) selectedSeason = "2016";
+    Button btn2017 = new Button(20, 300, 60, 35, "2017");
+    btn2017.display();
+    if(btn2017.hasClicked()) selectedSeason = "2017";
+    Button btn2018 = new Button(20, 350, 60, 35, "2018");
+    btn2018.display();
+    if(btn2018.hasClicked()) selectedSeason = "2018";
+}
 // Page 1
 void page1() {
     background(255);
     // Load images
-    shape(map, canvasWidth/2, canvasHeight/2, canvasWidth/2, canvasHeight/2);
+    
+    shape(map, 150, 100, canvasWidth - 150, canvasHeight - 100);
     fill(255,0,0);    
+    // Title
+    textSize(48);
+    text("Circuits", canvasWidth/2 -100, 50);
+    
+    // Season Buttons
+    drawSeasonButtons();
+    
     // Loop through the circuits
     for(Map.Entry raceEntry : racesMap.entrySet()) {
       JSONObject raceJSON = (JSONObject) raceEntry.getValue();
@@ -140,13 +177,13 @@ void page1() {
         ellipse(mapX, mapY, 20, 20); 
 
         // Some kind of menu interface
-        line(mapX, mapY, 430, 480);
+        line(mapX, mapY, 200, 600);
         text(circuitJSON.getString("circuitName"), 410, 490);
         // Show Circuit Image
         PImage circuitImage = loadImage("/img/circuits/" + circuitID + ".png");
         if(circuitImage != null) {
           circuitImage.resize(200,200);
-          image(circuitImage, 410, 520);
+          image(circuitImage, 200, 600);
           
           // When the user clicks this circle, change page
           if(mousePressed) currentPage = 2;
@@ -161,17 +198,32 @@ void page1() {
 void page2() {
    background(255);
    JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
-   text(circuitJSON.getString("circuitName"), canvasWidth/2, 30); // title
+   // Title
+   textSize(32);
+   String circuitName = circuitJSON.getString("circuitName");
+   text(circuitName, canvasWidth/2 - 100, 60); 
+   textSize(12);
+   // Circuit Image
    PImage circuitImage = loadImage("img/circuits/" + circuitJSON.getString("circuitId") + ".png");
    circuitImage.resize(canvasWidth/2,canvasHeight/2);
    image(circuitImage,canvasWidth/2,canvasHeight/2);   
-   // Buttons For each Season
+   // Draw season buttons
+   drawSeasonButtons();
+   
+   // Details page pointing to wiki
+   fill(0);
+   text("View on Wikipedia", 450, 100);
+   if(mouseX < 470 && mouseX > 430 && mouseY > 80 && mouseY < 120) {
+     if(mousePressed) {
+       link(circuitJSON.getString("url"));
+     }
+   }
    
    // When the User clicks the season, show the standings for this year on this circuit
    
    // Get Driver standings
    String round = selectedRace.getString("round");
-   JSONObject data = loadJSONObject(apiURL + "2018/" + round + "/results.json").getJSONObject("MRData");
+   JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/results.json").getJSONObject("MRData");
    JSONObject race = (JSONObject) data.getJSONObject("RaceTable").getJSONArray("Races").get(0);
    JSONArray results = race.getJSONArray("Results");
    
@@ -225,7 +277,7 @@ void page3() {
 
 void page4()  {
    background(255);
-   JSONObject data = loadJSONObject(apiURL + "2018/constructors.json").getJSONObject("MRData"); //TODO change year
+   JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
    JSONArray constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
   
    int incr1 = 1, incr2 = 1;

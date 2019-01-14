@@ -32,6 +32,14 @@ private JSONObject selectedConstructor;
 // Selected Season. Defaults to 2018
 private String selectedSeason = "2018";
 
+// Circuit locations on the map
+Map<String, MapPosition> mapPositions = new HashMap<String, MapPosition>();
+
+// Season buttons
+private Button btn2015 = new Button(20, 200, 60, 35, "2015");
+private Button btn2016 = new Button(20, 250, 60, 35, "2016");
+private Button btn2017 = new Button(20, 300, 60, 35, "2017");
+private Button btn2018 = new Button(20, 350, 60, 35, "2018");
 
 void settings() {
     size(canvasWidth, canvasHeight);
@@ -39,6 +47,9 @@ void settings() {
 
 void setup() {
   
+  // Load Map positions
+  loadCircuitPointOnMap();
+
   // Get necessary data from the API
   // Load All the Circuits
   JSONObject data = loadJSONObject(apiURL + selectedSeason + ".json").getJSONObject("MRData"); 
@@ -49,13 +60,13 @@ void setup() {
      JSONObject raceJSON = racesJSON.getJSONObject(i);
      JSONObject circuitJSON = racesJSON.getJSONObject(i).getJSONObject("Circuit");
      String circuitID = circuitJSON.getString("circuitId"); // Key
-     // TODO For now only add Brazil)
-     if(circuitID.equals("albert_park")) {
-       // Add map coordinates to JSON
+     // Load points from the Map
+     MapPosition mapPosition = mapPositions.get(circuitID);
+     if(mapPosition != null) {
        // Load coordinates from file
-       circuitJSON.setInt("mapX", 640);
-       circuitJSON.setInt("mapY", 640);
-       
+       circuitJSON.setInt("mapX", mapPosition.getX());
+       circuitJSON.setInt("mapY", mapPosition.getY());
+         
        circuitsMap.put(circuitID, circuitJSON); // Add to Collection
        racesMap.put(round, raceJSON); // Add to collection
      }
@@ -72,7 +83,7 @@ void draw() {
   // Pages
   switch(currentPage) {
     case 0:
-      page1(); // Intro
+      page6(); // Intro
     break;
     case 1:
       page1(); // Circuit
@@ -105,6 +116,8 @@ void draw() {
 
 // Page 0
 void page0() {
+    // Back button
+    drawBackButton();
     // Load Images
     // Background
     f1Background.resize(canvasWidth, canvasHeight);
@@ -133,18 +146,67 @@ void page0() {
 
 void drawSeasonButtons() {
    // Season Buttons
-    Button btn2015 = new Button(20, 200, 60, 35, "2015");
+    
     btn2015.display();
     if(btn2015.hasClicked()) selectedSeason = "2015";
-    Button btn2016 = new Button(20, 250, 60, 35, "2016");
+   
     btn2016.display();
     if(btn2016.hasClicked()) selectedSeason = "2016";
-    Button btn2017 = new Button(20, 300, 60, 35, "2017");
+   
     btn2017.display();
     if(btn2017.hasClicked()) selectedSeason = "2017";
-    Button btn2018 = new Button(20, 350, 60, 35, "2018");
+
     btn2018.display();
     if(btn2018.hasClicked()) selectedSeason = "2018";
+    
+    // Highlight the selected button
+    color buttonColor = color(255,0,0);
+    color buttonTextColor = color(255);
+    color defaultButtonColor = color(0);
+    color defaultButtonTextColor = color(255);
+    
+    switch(selectedSeason) {
+      case "2015":
+        btn2015.buttonColor = buttonColor;
+        btn2015.buttonTextColor = buttonTextColor;
+        btn2016.buttonColor = defaultButtonColor;
+        btn2017.buttonColor = defaultButtonColor;
+        btn2018.buttonColor = defaultButtonColor;
+        btn2016.buttonTextColor = defaultButtonTextColor;
+        btn2017.buttonTextColor = defaultButtonTextColor;
+        btn2018.buttonTextColor = defaultButtonTextColor;
+      break;
+       case "2016":
+         btn2016.buttonColor = buttonColor;
+         btn2016.buttonTextColor = buttonTextColor;
+         btn2015.buttonColor = defaultButtonColor;
+         btn2017.buttonColor = defaultButtonColor;
+         btn2018.buttonColor = defaultButtonColor;
+         btn2015.buttonTextColor = defaultButtonTextColor;
+         btn2017.buttonTextColor = defaultButtonTextColor;
+         btn2018.buttonTextColor = defaultButtonTextColor;
+       break;
+       case "2017":
+         btn2017.buttonColor = buttonColor;
+         btn2017.buttonTextColor = buttonTextColor;
+         btn2016.buttonColor = defaultButtonColor;
+         btn2015.buttonColor = defaultButtonColor;
+         btn2018.buttonColor = defaultButtonColor;
+         btn2016.buttonTextColor = defaultButtonTextColor;
+         btn2015.buttonTextColor = defaultButtonTextColor;
+         btn2018.buttonTextColor = defaultButtonTextColor;
+       break;
+       case "2018":
+         btn2018.buttonColor = buttonColor;
+         btn2018.buttonTextColor = buttonTextColor;
+         btn2016.buttonColor = defaultButtonColor;
+         btn2017.buttonColor = defaultButtonColor;
+         btn2015.buttonColor = defaultButtonColor;
+         btn2016.buttonTextColor = defaultButtonTextColor;
+         btn2017.buttonTextColor = defaultButtonTextColor;
+         btn2015.buttonTextColor = defaultButtonTextColor;
+       break;
+    }
 }
 // Page 1
 void page1() {
@@ -197,8 +259,11 @@ void page1() {
 
 void page2() {
    background(255);
+    // Back button
+    drawBackButton();
    JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
    // Title
+   fill(255,0,0);
    textSize(32);
    String circuitName = circuitJSON.getString("circuitName");
    text(circuitName, canvasWidth/2 - 100, 60); 
@@ -219,8 +284,6 @@ void page2() {
      }
    }
    
-   // When the User clicks the season, show the standings for this year on this circuit
-   
    // Get Driver standings
    String round = selectedRace.getString("round");
    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/results.json").getJSONObject("MRData");
@@ -232,10 +295,16 @@ void page2() {
      JSONObject driver = result.getJSONObject("Driver");
      String driverID = driver.getString("driverId");
      
+     // Display the standings in a "table listing"
+     fill(255);
+     rect(100, i * 10 + 200, 100, 30);
+     // Driver Name
+     String driverName = driver.getString("givenName") + " " + driver.getString("familyName");
+     fill(0);
+     text(driverName, 110, i * 10 + 200 + 10);
+     
      // Top 3
-     if( i < 3) {
-       // Driver Name
-       String driverName = driver.getString("givenName") + " " + driver.getString("familyName");
+     if(i < 3) {    
        text(driverName, i *100, canvasHeight/2 - 50);
        PImage driverImage = loadImage("/img/drivers/" + driverID + ".jpg");
        driverImage.resize(100,100);
@@ -271,12 +340,19 @@ void page2() {
 
 void page3() {
   background(255);
+  // Back button
+  drawBackButton();
   String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
+  // Title
+  textSize(32);
+  fill(255,0,0);
   text(driverName, canvasWidth/2, 20);
 }
 
 void page4()  {
    background(255);
+   // Back button
+   drawBackButton();
    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
    JSONArray constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
   
@@ -322,6 +398,8 @@ void page4()  {
 
 void page5() {
      background(255);
+     // Back button
+     drawBackButton();
      String constructorID = selectedConstructor.getString("name");
      text(constructorID, canvasWidth/2, 20);
      PImage constructorImage = loadImage("/img/constructors/" + selectedConstructor.getString("constructorId") + ".png");
@@ -331,9 +409,12 @@ void page5() {
 
 void page6() {
    background(255);
+    // Back button
+   drawBackButton();
    JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
    JSONArray finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
    
+   fill(255,0,0);
    // For each Status
    int incr1 = 1, incr2 = 1, incr3 = 1;
    for(int i = 0; i < finishStatusesJSON.size(); i++) {
@@ -359,4 +440,23 @@ void page6() {
        incr3++;
      }
    }
+}
+
+void loadCircuitPointOnMap() {
+  String[] lines = loadStrings("circuitLocations.txt");
+  for(String line : lines) {
+    String[] params = line.split(";");
+    MapPosition mapPosition = new MapPosition(Integer.parseInt(params[1]), Integer.parseInt(params[2]));
+    // Key
+    String circuitID = params[0];
+    mapPositions.put(circuitID, mapPosition);
+    
+    println("Map position for " + circuitID + " loaded -> X: " + mapPosition.getX() + " ,Y: " + mapPosition.getY());
+  }
+}
+
+void drawBackButton() {
+  Button backButton = new Button(20,20, 70, 50, "Back");
+  backButton.display();
+  if(backButton.hasClicked()) currentPage--;
 }

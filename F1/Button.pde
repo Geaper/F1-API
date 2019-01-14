@@ -1,6 +1,7 @@
 class Button {
  
-  color butFill = 0;
+  color buttonColor = 0;
+  color buttonTextColor = 255;
   int buttonX, buttonY, buttonWidth, buttonHeight;
   boolean overButton, buttonOn;
   String text;
@@ -12,15 +13,16 @@ class Button {
     buttonHeight = tempbuttonHeight;
     this.text = text;
   }
+  
   void display() {
-    fill(butFill);
+    fill(buttonColor);
     rect(buttonX, buttonY, buttonWidth, buttonHeight);
     textSize(10);
-    fill(255);
+    fill(buttonTextColor);
     text(text, buttonX + buttonWidth * .22, buttonY + buttonHeight/2);
   }
  
   boolean hasClicked() {
-    return mouseX > buttonX & mouseX < buttonX+buttonWidth & mouseY > buttonY & mouseY < buttonY+buttonHeight;
+    return mouseX > buttonX & mouseX < buttonX+buttonWidth & mouseY > buttonY & mouseY < buttonY+buttonHeight && mousePressed;
   }
 }

@@ -1,4 +1,7 @@
 import java.util.Map;
+import controlP5.*;
+
+private ControlP5 cp5;
 
 // API URL
 private static final String apiURL = "https://ergast.com/api/f1/";
@@ -30,25 +33,88 @@ private JSONObject selectedDriver;
 // Selected Constructor
 private JSONObject selectedConstructor;
 // Selected Season. Defaults to 2018
-private String selectedSeason = "2018";
+private int selectedSeason = 2018;
+// Selected race results
+private JSONArray resultsJSONArray;
+// Driver Images
+private Map<String, PImage> driverImages = new HashMap<String, PImage>();
+// Circuit Images
+private Map<String, PImage> circuitImages = new HashMap<String, PImage>();
+// Flags Images
+private Map<String, PImage> flagImages = new HashMap<String, PImage>();
+// Constructor Images
+private Map<String, PImage> constructorImages = new HashMap<String, PImage>();
+
+// Page information loaded?
+private boolean dataLoaded = false;
+
+// Results of a race
+JSONArray resultsArray;
 
 // Circuit locations on the map
 Map<String, MapPosition> mapPositions = new HashMap<String, MapPosition>();
-
-// Season buttons
-private Button btn2015 = new Button(20, 200, 60, 35, "2015");
-private Button btn2016 = new Button(20, 250, 60, 35, "2016");
-private Button btn2017 = new Button(20, 300, 60, 35, "2017");
-private Button btn2018 = new Button(20, 350, 60, 35, "2018");
 
 void settings() {
     size(canvasWidth, canvasHeight);
 }
 
+  // This function returns all the files in a directory as an array of Strings  
+String[] listFileNames(String dir) {
+  File file = new File(dir);
+  if (file.isDirectory()) {
+    String names[] = file.list();
+    return names;
+  } else {
+    // If it's not a directory
+    return null;
+  }
+}
+
+
 void setup() {
+  
+  // Enable control p5
+  cp5 = new ControlP5(this);
   
   // Load Map positions
   loadCircuitPointOnMap();
+  
+  // Load All Flag Images
+  String[] fileNames = listFileNames(sketchPath() + "/img/flags");
+  println("Loading Flags");
+  for(String fileName : fileNames) {
+    // remove extension
+    String flagName = fileName.split("\\.")[0];
+    flagImages.put(flagName, loadImage(sketchPath() + "/img/flags/" + fileName));
+  }
+  
+  // Load All Circuit Images
+  fileNames = listFileNames(sketchPath() + "/img/circuits");
+  println("Loading Circuits");
+  for(String fileName : fileNames) {
+    // remove extension
+    String circuitid = fileName.split("\\.")[0];
+    circuitImages.put(circuitid, loadImage(sketchPath() + "/img/circuits/" + fileName));
+  }
+  
+  // Load All Driver Images
+  fileNames = listFileNames(sketchPath() + "/img/drivers");
+  println("Loading Drivers");
+  for(String fileName : fileNames) {
+    // remove extension
+    String driverid = fileName.split("\\.")[0];
+    driverImages.put(driverid, loadImage(sketchPath() + "/img/drivers/" + fileName));
+  }
+  
+  // Load All Constructor Images
+  fileNames = listFileNames(sketchPath() + "/img/constructors");
+  println("Loading Constructors");
+  for(String fileName : fileNames) {
+    // remove extension
+    String constructorid = fileName.split("\\.")[0];
+    constructorImages.put(constructorid, loadImage(sketchPath() + "/img/constructors/" + fileName));
+  }
+  
 
   // Get necessary data from the API
   // Load All the Circuits
@@ -83,7 +149,7 @@ void draw() {
   // Pages
   switch(currentPage) {
     case 0:
-      page6(); // Intro
+      page0(); // Intro
     break;
     case 1:
       page1(); // Circuit
@@ -116,8 +182,6 @@ void draw() {
 
 // Page 0
 void page0() {
-    // Back button
-    drawBackButton();
     // Load Images
     // Background
     f1Background.resize(canvasWidth, canvasHeight);
@@ -144,83 +208,32 @@ void page0() {
     if(keyPressed || mousePressed) currentPage = 1;
 }
 
-void drawSeasonButtons() {
-   // Season Buttons
-    
-    btn2015.display();
-    if(btn2015.hasClicked()) selectedSeason = "2015";
-   
-    btn2016.display();
-    if(btn2016.hasClicked()) selectedSeason = "2016";
-   
-    btn2017.display();
-    if(btn2017.hasClicked()) selectedSeason = "2017";
-
-    btn2018.display();
-    if(btn2018.hasClicked()) selectedSeason = "2018";
-    
-    // Highlight the selected button
-    color buttonColor = color(255,0,0);
-    color buttonTextColor = color(255);
-    color defaultButtonColor = color(0);
-    color defaultButtonTextColor = color(255);
-    
-    switch(selectedSeason) {
-      case "2015":
-        btn2015.buttonColor = buttonColor;
-        btn2015.buttonTextColor = buttonTextColor;
-        btn2016.buttonColor = defaultButtonColor;
-        btn2017.buttonColor = defaultButtonColor;
-        btn2018.buttonColor = defaultButtonColor;
-        btn2016.buttonTextColor = defaultButtonTextColor;
-        btn2017.buttonTextColor = defaultButtonTextColor;
-        btn2018.buttonTextColor = defaultButtonTextColor;
-      break;
-       case "2016":
-         btn2016.buttonColor = buttonColor;
-         btn2016.buttonTextColor = buttonTextColor;
-         btn2015.buttonColor = defaultButtonColor;
-         btn2017.buttonColor = defaultButtonColor;
-         btn2018.buttonColor = defaultButtonColor;
-         btn2015.buttonTextColor = defaultButtonTextColor;
-         btn2017.buttonTextColor = defaultButtonTextColor;
-         btn2018.buttonTextColor = defaultButtonTextColor;
-       break;
-       case "2017":
-         btn2017.buttonColor = buttonColor;
-         btn2017.buttonTextColor = buttonTextColor;
-         btn2016.buttonColor = defaultButtonColor;
-         btn2015.buttonColor = defaultButtonColor;
-         btn2018.buttonColor = defaultButtonColor;
-         btn2016.buttonTextColor = defaultButtonTextColor;
-         btn2015.buttonTextColor = defaultButtonTextColor;
-         btn2018.buttonTextColor = defaultButtonTextColor;
-       break;
-       case "2018":
-         btn2018.buttonColor = buttonColor;
-         btn2018.buttonTextColor = buttonTextColor;
-         btn2016.buttonColor = defaultButtonColor;
-         btn2017.buttonColor = defaultButtonColor;
-         btn2015.buttonColor = defaultButtonColor;
-         btn2016.buttonTextColor = defaultButtonTextColor;
-         btn2017.buttonTextColor = defaultButtonTextColor;
-         btn2015.buttonTextColor = defaultButtonTextColor;
-       break;
-    }
-}
 // Page 1
 void page1() {
     background(255);
     // Load images
     
-    shape(map, 150, 100, canvasWidth - 150, canvasHeight - 100);
+    shape(map, 0, 0, canvasWidth, canvasHeight - 100);
     fill(255,0,0);    
     // Title
     textSize(48);
     text("Circuits", canvasWidth/2 -100, 50);
     
-    // Season Buttons
-    drawSeasonButtons();
+    // Season Slider
+    if(!dataLoaded) {
+      cp5.addSlider("selectedSeason")
+       .setPosition(canvasWidth/2 - 250,canvasHeight - 50)
+       .setColorBackground(color(255,0,0))
+       .setColorActive(color(127,0,0))
+       .setColorTickMark(color(0,0,0))
+       .setSize(600,50)
+       .setRange(2015,2018) // values can range from big to small as well
+       .setValue(2015)
+       .setNumberOfTickMarks(4)
+       .setSliderMode(Slider.FLEXIBLE);
+       
+       dataLoaded = true;
+    }
     
     // Loop through the circuits
     for(Map.Entry raceEntry : racesMap.entrySet()) {
@@ -242,106 +255,95 @@ void page1() {
         line(mapX, mapY, 200, 600);
         text(circuitJSON.getString("circuitName"), 410, 490);
         // Show Circuit Image
-        PImage circuitImage = loadImage("/img/circuits/" + circuitID + ".png");
+        PImage circuitImage = circuitImages.get(circuitID);
         if(circuitImage != null) {
           circuitImage.resize(200,200);
           image(circuitImage, 200, 600);
           
           // When the user clicks this circle, change page
-          if(mousePressed) currentPage = 2;
-          
-          // "Pass" selectedCircuitID
-          selectedRace = raceJSON;
+          if(mousePressed)  {
+            dataLoaded = false;
+            currentPage = 2;
+            // "Pass" selectedCircuitID
+            selectedRace = raceJSON;
+          }
         }
       }
    }
 }
 
 void page2() {
-   background(255);
-    // Back button
-    drawBackButton();
-   JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
-   // Title
-   fill(255,0,0);
-   textSize(32);
-   String circuitName = circuitJSON.getString("circuitName");
-   text(circuitName, canvasWidth/2 - 100, 60); 
-   textSize(12);
-   // Circuit Image
-   PImage circuitImage = loadImage("img/circuits/" + circuitJSON.getString("circuitId") + ".png");
-   circuitImage.resize(canvasWidth/2,canvasHeight/2);
-   image(circuitImage,canvasWidth/2,canvasHeight/2);   
-   // Draw season buttons
-   drawSeasonButtons();
-   
-   // Details page pointing to wiki
-   fill(0);
-   text("View on Wikipedia", 450, 100);
-   if(mouseX < 470 && mouseX > 430 && mouseY > 80 && mouseY < 120) {
-     if(mousePressed) {
-       link(circuitJSON.getString("url"));
-     }
-   }
-   
-   // Get Driver standings
-   String round = selectedRace.getString("round");
-   JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/results.json").getJSONObject("MRData");
-   JSONObject race = (JSONObject) data.getJSONObject("RaceTable").getJSONArray("Races").get(0);
-   JSONArray results = race.getJSONArray("Results");
-   
-   for(int i = 0; i < results.size(); i++) {
-     JSONObject result = (JSONObject) results.get(i);
-     JSONObject driver = result.getJSONObject("Driver");
-     String driverID = driver.getString("driverId");
+  // If data is not loaded, do it
+  if(!dataLoaded) {  
+      background(255);
+      // Load Circuit
+      JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
+      String circuitid = circuitJSON.getString("circuitId");
+      PImage circuitImage = circuitImages.get(circuitid);
+      circuitImage.resize(canvasWidth/2,canvasHeight/2);
+      image(circuitImage,canvasWidth/2,canvasHeight/2);   
+      
+      // Get Driver standings
+     String round = selectedRace.getString("round");
+     JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/results.json").getJSONObject("MRData");
+     JSONObject race = (JSONObject) data.getJSONObject("RaceTable").getJSONArray("Races").get(0);
+     resultsJSONArray = race.getJSONArray("Results");
      
-     // Display the standings in a "table listing"
-     fill(255);
-     rect(100, i * 10 + 200, 100, 30);
-     // Driver Name
-     String driverName = driver.getString("givenName") + " " + driver.getString("familyName");
-     fill(0);
-     text(driverName, 110, i * 10 + 200 + 10);
-     
-     // Top 3
-     if(i < 3) {    
-       text(driverName, i *100, canvasHeight/2 - 50);
-       PImage driverImage = loadImage("/img/drivers/" + driverID + ".jpg");
-       driverImage.resize(100,100);
-       image(driverImage, i * 100, canvasHeight/2);
-       // Load Driver flag
-       PImage flagImage = loadImage("/img/flags/" + driver.getString("nationality") + ".png");
-       flagImage.resize(70,50);
-       image(flagImage, i *100, canvasHeight/2 + 150);
-       // Load Constructors
-       JSONObject constructorJSON = result.getJSONObject("Constructor");
-       PImage constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".png");
-       constructorImage.resize(70, 50);
-       image(constructorImage, i * 100, canvasHeight/2 + 250);
+     ArrayList<String> driverStandingsList = new ArrayList<String>();
+     for(int i = 0; i < resultsJSONArray.size(); i++) {
+       JSONObject result = (JSONObject) resultsJSONArray.get(i);
+       JSONObject driver = result.getJSONObject("Driver");
+       String driverID = driver.getString("driverId");
        
-       // When user hovers the driver image
-       if(mouseX < i * 100 + 100 && mouseX > i * 100 -100 && mouseY > canvasHeight/2 - 100 && mouseY < canvasHeight/2 +100) {
-         // If user clicks on the image
-         if(mousePressed)  {
-           selectedDriver = driver;
-           currentPage = 3;
-         }
+       // Driver Name
+       String driverName = driver.getString("givenName") + " " + driver.getString("familyName");
+       
+       // Top 3
+       if(i < 3) {
+         PImage driverImage = driverImages.get(driverID);
+         driverImage.resize(100,100);
+         image(driverImage, i * 100, canvasHeight/2);
+         // Load Driver flag
+         PImage flagImage = flagImages.get(driver.getString("nationality"));
+         flagImage.resize(70,50);
+         image(flagImage, i *100, canvasHeight/2 + 150);
+         // Load Constructors
+         JSONObject constructorJSON = result.getJSONObject("Constructor");
+         String constructorID = constructorJSON.getString("constructorId");
+         PImage constructorImage = constructorImages.get(constructorID);
+         constructorImage.resize(70, 50);
+         image(constructorImage, i * 100, canvasHeight/2 + 250);
        }
-       // When user hovers the constructor image
-       if(mouseX < i * 100 +70 && mouseX > i * 100 -70 && mouseY > canvasHeight/2 - 200 && mouseY < canvasHeight/2 +300) {
-         if(mousePressed) {
-           selectedConstructor = constructorJSON;
-           currentPage = 5;
-         }
-       }
-     }    
-   }
+       
+       driverStandingsList.add(driverName);
+     }
+     
+       cp5.addScrollableList("Driver Standings")
+       .setPosition(0, 0)
+       .setSize(300, 600)
+       .setColorBackground(color(255, 0,0))
+       .setColorActive(color(0))
+       .setBarHeight(20)
+       .setItemHeight(20)
+       .addItems(driverStandingsList);
+      
+      dataLoaded = true;
+  }
+  // Create Click events
+  for(int i = 0; i < resultsJSONArray.size(); i++) {
+    // Driver Image Click
+    if(mouseX < i * 100 - 25 && mouseX > i * 100 + 25 && mouseY > canvasHeight/2 - 25 && mouseY < canvasHeight/2 + 25) {
+      JSONObject result = (JSONObject) resultsJSONArray.get(i);
+      JSONObject driver = result.getJSONObject("Driver");
+      selectedDriver = driver;
+      currentPage = 3;
+    }
+  }
 }
 
 void page3() {
   background(255);
-  // Back button
-  drawBackButton();
+
   String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
   // Title
   textSize(32);
@@ -351,8 +353,7 @@ void page3() {
 
 void page4()  {
    background(255);
-   // Back button
-   drawBackButton();
+
    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
    JSONArray constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
   
@@ -398,8 +399,7 @@ void page4()  {
 
 void page5() {
      background(255);
-     // Back button
-     drawBackButton();
+
      String constructorID = selectedConstructor.getString("name");
      text(constructorID, canvasWidth/2, 20);
      PImage constructorImage = loadImage("/img/constructors/" + selectedConstructor.getString("constructorId") + ".png");
@@ -409,8 +409,7 @@ void page5() {
 
 void page6() {
    background(255);
-    // Back button
-   drawBackButton();
+
    JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
    JSONArray finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
    
@@ -453,10 +452,4 @@ void loadCircuitPointOnMap() {
     
     println("Map position for " + circuitID + " loaded -> X: " + mapPosition.getX() + " ,Y: " + mapPosition.getY());
   }
-}
-
-void drawBackButton() {
-  Button backButton = new Button(20,20, 70, 50, "Back");
-  backButton.display();
-  if(backButton.hasClicked()) currentPage--;
 }

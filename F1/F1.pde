@@ -1,6 +1,8 @@
 import java.util.Map;
 import controlP5.*;
+import processing.video.*;
 
+private Movie video;
 private ControlP5 cp5;
 
 // API URL
@@ -72,10 +74,9 @@ String[] listFileNames(String dir) {
 
 
 void setup() {
-  
   // Enable control p5
   cp5 = new ControlP5(this);
-  
+ 
   // Load Map positions
   loadCircuitPointOnMap();
   
@@ -143,6 +144,11 @@ void setup() {
   f1Logo = loadImage("img/common/f1-logo2.png");
   f1Background = loadImage("img/common/f1-background.jpg");
   ipcaLogo = loadImage("img/common/ipca.png");
+}
+
+// Called every time a new frame is available to read
+void movieEvent(Movie m) {
+  m.read();
 }
 
 void draw() {
@@ -226,7 +232,7 @@ void page1() {
        .setColorBackground(color(255,0,0))
        .setColorActive(color(127,0,0))
        .setColorTickMark(color(0,0,0))
-       .setSize(600,50)
+       .setSize(450,25)
        .setRange(2015,2018) // values can range from big to small as well
        .setValue(2015)
        .setNumberOfTickMarks(4)
@@ -276,12 +282,10 @@ void page2() {
   // If data is not loaded, do it
   if(!dataLoaded) {  
       background(255);
-      // Load Circuit
-      JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
-      String circuitid = circuitJSON.getString("circuitId");
-      PImage circuitImage = circuitImages.get(circuitid);
-      circuitImage.resize(canvasWidth/2,canvasHeight/2);
-      image(circuitImage,canvasWidth/2,canvasHeight/2);   
+      // Load Circuit  
+      video = new Movie(this, "albert_park.mp4");
+      video.loop();
+     
       
       // Get Driver standings
      String round = selectedRace.getString("round");
@@ -301,8 +305,8 @@ void page2() {
        // Top 3
        if(i < 3) {
          PImage driverImage = driverImages.get(driverID);
-         driverImage.resize(100,100);
-         image(driverImage, i * 100, canvasHeight/2);
+         driverImage.resize(150,150);
+         image(driverImage, 120*i, 200);
          // Load Driver flag
          PImage flagImage = flagImages.get(driver.getString("nationality"));
          flagImage.resize(70,50);
@@ -330,25 +334,35 @@ void page2() {
       dataLoaded = true;
   }
   // Create Click events
-  for(int i = 0; i < resultsJSONArray.size(); i++) {
+  // For each Driver
+  for(int i = 0; i < 3; i++) {
     // Driver Image Click
-    if(mouseX < i * 100 - 25 && mouseX > i * 100 + 25 && mouseY > canvasHeight/2 - 25 && mouseY < canvasHeight/2 + 25) {
-      JSONObject result = (JSONObject) resultsJSONArray.get(i);
-      JSONObject driver = result.getJSONObject("Driver");
-      selectedDriver = driver;
-      currentPage = 3;
+    if(mouseX < i * 100 + 125 && mouseX > i * 100 - 125 && mouseY > canvasHeight/2 - 125 && mouseY < canvasHeight/2 + 125) {
+      if(mousePressed) {
+        JSONObject result = (JSONObject) resultsJSONArray.get(i);
+        JSONObject driver = result.getJSONObject("Driver");
+        selectedDriver = driver;
+        currentPage = 3;
+      }
     }
   }
+   image(video, canvasWidth/2, canvasHeight/2, canvasWidth/2, canvasHeight/2);
 }
 
 void page3() {
   background(255);
+  cp5.hide();
 
+  String driverID = selectedDriver.getString("driverId");
   String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
   // Title
   textSize(32);
   fill(255,0,0);
   text(driverName, canvasWidth/2, 20);
+  // Driver Picture
+  PImage driverImage = driverImages.get(driverID);
+  driverImage.resize(canvasWidth/2, canvasHeight/2);
+  image(driverImage, canvasWidth/2, canvasHeight/2);
 }
 
 void page4()  {

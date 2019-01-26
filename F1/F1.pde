@@ -214,6 +214,19 @@ void page0() {
     if(keyPressed || mousePressed) currentPage = 1;
 }
 
+void seasonSlider() { 
+  cp5.addSlider("selectedSeason")
+       .setPosition(canvasWidth/2 - 250,canvasHeight - 15)
+       .setColorBackground(color(255,0,0))
+       .setColorActive(color(127,0,0))
+       .setColorTickMark(color(0,0,0))
+       .setSize(450,15)
+       .setRange(2015,2018) // values can range from big to small as well
+       .setValue(2015)
+       .setNumberOfTickMarks(4)
+       .setSliderMode(Slider.FLEXIBLE);
+}
+
 // Page 1
 void page1() {
     background(255);
@@ -227,16 +240,7 @@ void page1() {
     
     // Season Slider
     if(!dataLoaded) {
-      cp5.addSlider("selectedSeason")
-       .setPosition(canvasWidth/2 - 250,canvasHeight - 50)
-       .setColorBackground(color(255,0,0))
-       .setColorActive(color(127,0,0))
-       .setColorTickMark(color(0,0,0))
-       .setSize(450,25)
-       .setRange(2015,2018) // values can range from big to small as well
-       .setValue(2015)
-       .setNumberOfTickMarks(4)
-       .setSliderMode(Slider.FLEXIBLE);
+      seasonSlider();
        
        dataLoaded = true;
     }
@@ -280,10 +284,20 @@ void page1() {
 
 void page2() {
   // If data is not loaded, do it
-  if(!dataLoaded) {  
-      background(255);
+  if(!dataLoaded) { 
+      background(0);
+       // Line
+       fill(255);
+       line(0, 30, canvasWidth, 30);
       // Load Circuit  
-      video = new Movie(this, "albert_park.mp4");
+      JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
+      String circuitName = circuitJSON.getString("circuitName");
+      // Title
+      cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
+      
+      String ciruitID = circuitJSON.getString("circuitId");
+      println(ciruitID);
+      video = new Movie(this, ciruitID + ".mp4");
       video.loop();
      
       
@@ -305,30 +319,61 @@ void page2() {
        // Top 3
        if(i < 3) {
          PImage driverImage = driverImages.get(driverID);
-         driverImage.resize(150,150);
-         image(driverImage, 120*i, 200);
+         driverImage.resize(100,100);
+         int driverPosX = 0, driverPosY = 0, flagPosX = 0, flagPosY = 0, constructorPosX = 0, constructorPosY = 0;
+         
+         switch(i) {
+           // First Place
+           case 0:
+             driverPosX = 1250;
+             driverPosY = 150;
+             flagPosX = driverPosX;
+             flagPosY = 250;
+             constructorPosX = driverPosX + 70;
+             constructorPosY = flagPosY;
+           break;
+           case 1:
+             driverPosX = 1400;
+             driverPosY = 200;
+              flagPosX = driverPosX;
+             flagPosY = 300;
+             constructorPosX = driverPosX + 70;
+             constructorPosY = flagPosY;
+           break;
+           case 2:
+             driverPosX = 1100;
+             driverPosY = 200;
+             flagPosX = driverPosX;
+             flagPosY = 300;
+             constructorPosX = driverPosX + 70;
+             constructorPosY = flagPosY;
+           break;
+         }
+         
+         image(driverImage, driverPosX, driverPosY);
+         
          // Load Driver flag
          PImage flagImage = flagImages.get(driver.getString("nationality"));
-         flagImage.resize(70,50);
-         image(flagImage, i *100, canvasHeight/2 + 150);
+         flagImage.resize(35,25);
+         image(flagImage, flagPosX, flagPosY);
+         
          // Load Constructors
          JSONObject constructorJSON = result.getJSONObject("Constructor");
          String constructorID = constructorJSON.getString("constructorId");
          PImage constructorImage = constructorImages.get(constructorID);
-         constructorImage.resize(70, 50);
-         image(constructorImage, i * 100, canvasHeight/2 + 250);
+         constructorImage.resize(35, 25);
+         image(constructorImage, constructorPosX, constructorPosY);
        }
-       
-       driverStandingsList.add(driverName);
+       driverStandingsList.add(driverName + " | " + result.getString("status"));
      }
      
        cp5.addScrollableList("Driver Standings")
-       .setPosition(0, 0)
-       .setSize(300, 600)
+       .setPosition(0, 350)
+       .setSize(450, 450)
        .setColorBackground(color(255, 0,0))
        .setColorActive(color(0))
-       .setBarHeight(20)
-       .setItemHeight(20)
+       .setBarHeight(30)
+       .setItemHeight(30)
        .addItems(driverStandingsList);
       
       dataLoaded = true;
@@ -346,7 +391,7 @@ void page2() {
       }
     }
   }
-   image(video, canvasWidth/2, canvasHeight/2, canvasWidth/2, canvasHeight/2);
+   image(video, canvasWidth/2, canvasHeight/2 - 30, canvasWidth/2, canvasHeight/2 - 30);
 }
 
 void page3() {

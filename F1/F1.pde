@@ -46,6 +46,8 @@ private Map<String, PImage> circuitImages = new HashMap<String, PImage>();
 private Map<String, PImage> flagImages = new HashMap<String, PImage>();
 // Constructor Images
 private Map<String, PImage> constructorImages = new HashMap<String, PImage>();
+// Circuit videos
+private Map<String, Movie> circuitVideos = new HashMap<String, Movie>();
 
 // Page information loaded?
 private boolean dataLoaded = false;
@@ -80,8 +82,19 @@ void setup() {
   // Load Map positions
   loadCircuitPointOnMap();
   
+  // Load all videos
+  String[] fileNames = listFileNames(sketchPath() + "/data/circuit_videos");
+  println("Loading Videos");
+  for(String fileName : fileNames) {
+    // remove extension
+    String circuitID = fileName.split("\\.")[0];
+    // Load videos
+    video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
+    circuitVideos.put(circuitID, video);
+  }
+ 
   // Load All Flag Images
-  String[] fileNames = listFileNames(sketchPath() + "/img/flags");
+  fileNames = listFileNames(sketchPath() + "/img/flags");
   println("Loading Flags");
   for(String fileName : fileNames) {
     // remove extension
@@ -258,25 +271,25 @@ void page1() {
       ellipse(mapX, mapY, 15, 15);
       // On Hover ...
       if(mouseX < mapX + 10 && mouseX > mapX - 10 && mouseY < mapY + 10 && mouseY > mapY- 10) {
+         
+        video = circuitVideos.get(circuitID);
+        image(video, 200, 600, 300, 200);
+        println(video);
+        video.loop();
+        
         // Expand circle
         ellipse(mapX, mapY, 20, 20); 
 
         // Some kind of menu interface
         line(mapX, mapY, 200, 600);
         text(circuitJSON.getString("circuitName"), 410, 490);
-        // Show Circuit Image
-        PImage circuitImage = circuitImages.get(circuitID);
-        if(circuitImage != null) {
-          circuitImage.resize(200,200);
-          image(circuitImage, 200, 600);
-          
-          // When the user clicks this circle, change page
-          if(mousePressed)  {
-            dataLoaded = false;
-            currentPage = 2;
-            // "Pass" selectedCircuitID
-            selectedRace = raceJSON;
-          }
+       
+        // When the user clicks this circle, change page
+        if(mousePressed)  {
+          dataLoaded = false;
+          currentPage = 2;
+          // "Pass" selectedCircuitID
+          selectedRace = raceJSON;
         }
       }
    }
@@ -295,11 +308,8 @@ void page2() {
       // Title
       cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
       
-      String ciruitID = circuitJSON.getString("circuitId");
-      println(ciruitID);
-      video = new Movie(this, ciruitID + ".mp4");
-      video.loop();
-     
+      String circuitID = circuitJSON.getString("circuitId");
+      println(circuitID);
       
       // Get Driver standings
      String round = selectedRace.getString("round");

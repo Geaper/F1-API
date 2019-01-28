@@ -87,6 +87,9 @@ void bar(int pageIndex) {
       case 0:
         currentPage = 0;
       break;
+      case 2:
+        currentPage = 7;
+      break;
       case 4:
         currentPage = 6;
       break;
@@ -236,6 +239,9 @@ void draw() {
     break;
     case 6:
       page6(); // Finishing Statistics (Maybe check the drivers with most accidents, finishes, etc...)
+    break;
+    case 7:
+      page7();
     break;
     default:
       currentPage = 0; // Default page
@@ -569,29 +575,61 @@ void page5() {
 }
 
 void page6() {
-   background(100);
-   if(dataLoaded) {
+   if(!dataLoaded) {
+      background(255);
      JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
      finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
      dataLoaded = true;
-   }
-   
-   fill(255,0,0);
-   // For each Status
-   float lastAngle = 0;
-   float totalCount = 0;
-   for(int i = 0; i < finishStatusesJSON.size(); i++) {
-     JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
-     String status = finishStatusJSON.getString("status");
-     float count = finishStatusJSON.getFloat("count");
      
-     totalCount += count;
-     println(status + " -> " + count);
-    float gray = map(i, 0, finishStatusesJSON.size(), 0, 255);
-     fill(gray);
-     arc(width/2, height/2, 300, 300, lastAngle, lastAngle + radians(count));
-     lastAngle += radians(count);   
-   } 
+    // Hide Controlp5
+    if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+    if(cp5.get("selectedSeason") != null) cp5.get("selectedSeason").hide();
+   
+     fill(255,0,0);
+     // For each Status
+     float lastAngle = 0;
+     float totalCount = 0;
+     for(int i = 0; i < finishStatusesJSON.size(); i++) {
+       JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
+       float count = finishStatusJSON.getFloat("count"); 
+       totalCount += count;
+     }
+       
+     for(int i = 0; i < finishStatusesJSON.size(); i++) {  
+       JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
+       float count = finishStatusJSON.getFloat("count");
+       String status = finishStatusJSON.getString("status");
+        
+        // Normalize to 360
+        count = (count*360)/totalCount;
+        
+        color randomColor = color(random(255), random(255), random(255), random(255));
+        fill(randomColor); 
+        arc(width/2, height/2, 400, 400, lastAngle, lastAngle + radians(count));
+        lastAngle += radians(count);   
+        
+        // Description on the right
+        rect(canvasWidth - 200, i * 20 + 150,20,20);
+        textSize(16);
+        text(status, canvasWidth - 175, i * 20 + 150);
+     } 
+   }
+}
+
+void page7() {
+  if(!dataLoaded) {
+    background(255);
+    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
+    JSONArray driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
+    
+    for(int i=0; i < driversJSON.size(); i++) {
+      JSONObject driverJSON = (JSONObject) driversJSON.get(i);
+      String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
+      println(driverName);
+    }
+    
+    dataLoaded = true;
+  }
 }
 
 void loadCircuitPointOnMap() {

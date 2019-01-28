@@ -625,7 +625,13 @@ void page7() {
     for(int i=0; i < driversJSON.size(); i++) {
       JSONObject driverJSON = (JSONObject) driversJSON.get(i);
       String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
+      String driverID = driverJSON.getString("driverId");
       println(driverName);
+      println(driverID);
+     
+      PImage driverImage = driverImages.get(driverID);
+      driverImage.resize(100,100);
+      image(driverImage, i * 100 + 100, 100);
     }
     
     dataLoaded = true;

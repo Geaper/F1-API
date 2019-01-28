@@ -1,3 +1,5 @@
+import de.looksgood.ani.*;
+import de.looksgood.ani.easing.*;
 import java.util.Map;
 import controlP5.*;
 import processing.video.*;
@@ -13,6 +15,7 @@ private JSONArray racesJSON;
 private HashMap<String, JSONObject> circuitsMap = new HashMap<String, JSONObject>();
 private HashMap<String, JSONObject> racesMap = new HashMap<String, JSONObject>();
 
+private ButtonBar buttonBar;
 
 private int currentPage = 0;
 
@@ -38,6 +41,8 @@ private JSONObject selectedConstructor;
 private int selectedSeason = 2018;
 // Selected race results
 private JSONArray resultsJSONArray;
+// Selected finish status
+private JSONArray finishStatusesJSON;
 // Driver Images
 private Map<String, PImage> driverImages = new HashMap<String, PImage>();
 // Circuit Images
@@ -74,10 +79,50 @@ String[] listFileNames(String dir) {
   }
 }
 
+// Call back event of menu bar
+void bar(int pageIndex) {
+   // TODO MAKE ALL PAGE TRANSITIONS
+    println(pageIndex);
+    switch(pageIndex) {
+      case 0:
+        currentPage = 0;
+      break;
+      case 4:
+        currentPage = 6;
+      break;
+    }
+    
+    dataLoaded = false;
+}
+
 
 void setup() {
+  
+  background(0);
+  // Spinner GIF
+  PImage spinner = loadImage("img/common/spinner.gif");
+  image(spinner, canvasWidth/2 - 100, canvasHeight/2 - 50);
+  
   // Enable control p5
   cp5 = new ControlP5(this);
+  
+  // Animation
+  Ani.init(this);
+  
+  // Menu Names
+  ArrayList<String> menuNames = new ArrayList<String>();
+  menuNames.add("Main Menu");
+  menuNames.add("Circuits");
+  menuNames.add("Drivers");
+  menuNames.add("Constructors");
+  menuNames.add("Finish Statistics");
+  menuNames.add("Lap Times");
+  
+  // Button Bar
+  buttonBar = cp5.addButtonBar("bar")
+     .setPosition(0, 0)
+     .setSize(canvasWidth, 20)
+     .addItems(menuNames);
  
   // Load Map positions
   loadCircuitPointOnMap();
@@ -165,6 +210,10 @@ void movieEvent(Movie m) {
 }
 
 void draw() {
+  
+  // Remove hidden menu when page is not the first one
+  if(currentPage != 0) buttonBar.show();
+  
   // Pages
   switch(currentPage) {
     case 0:
@@ -201,6 +250,7 @@ void draw() {
 
 // Page 0
 void page0() {
+    buttonBar.hide();
     // Load Images
     // Background
     f1Background.resize(canvasWidth, canvasHeight);
@@ -274,7 +324,6 @@ void page1() {
          
         video = circuitVideos.get(circuitID);
         image(video, 200, 600, 300, 200);
-        println(video);
         video.loop();
         
         // Expand circle
@@ -391,8 +440,33 @@ void page2() {
   // Create Click events
   // For each Driver
   for(int i = 0; i < 3; i++) {
+    
+     int driverPosX = 0, driverPosY = 0, constructorPosX = 0, constructorPosY = 0;
+         
+     switch(i) {
+       // First Place
+       case 0:
+         driverPosX = 1250;
+         driverPosY = 150;
+         constructorPosX = driverPosX + 70;
+         constructorPosY = 250;
+       break;
+       case 1:
+         driverPosX = 1400;
+         driverPosY = 200;
+         constructorPosX = driverPosX + 70;
+         constructorPosY = 300;
+       break;
+       case 2:
+         driverPosX = 1100;
+         driverPosY = 200;
+         constructorPosX = driverPosX + 70;
+         constructorPosY = 300;
+       break;
+     }
+    
     // Driver Image Click
-    if(mouseX < i * 100 + 125 && mouseX > i * 100 - 125 && mouseY > canvasHeight/2 - 125 && mouseY < canvasHeight/2 + 125) {
+    if(mouseX < driverPosX + 100 && mouseX > driverPosX && mouseY < driverPosY + 100 && mouseY > driverPosY) {
       if(mousePressed) {
         JSONObject result = (JSONObject) resultsJSONArray.get(i);
         JSONObject driver = result.getJSONObject("Driver");
@@ -400,13 +474,26 @@ void page2() {
         currentPage = 3;
       }
     }
+    // Constructor Image Click
+    if(mouseX < constructorPosX + 35 && mouseX > constructorPosX && mouseY < constructorPosY + 25 && mouseY > constructorPosY) {
+      if(mousePressed) {
+        JSONObject result = (JSONObject) resultsJSONArray.get(i);
+        JSONObject constructor = result.getJSONObject("Constructor");
+        selectedConstructor = constructor;
+        currentPage = 5;
+      }
+    }
   }
    image(video, canvasWidth/2, canvasHeight/2 - 30, canvasWidth/2, canvasHeight/2 - 30);
 }
 
+// Driver details
 void page3() {
-  background(255);
-  cp5.hide();
+  background(0);
+  
+  // Hide Controlp5
+  cp5.get("Driver Standings").hide();
+  cp5.get("selectedSeason").hide();
 
   String driverID = selectedDriver.getString("driverId");
   String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
@@ -416,8 +503,8 @@ void page3() {
   text(driverName, canvasWidth/2, 20);
   // Driver Picture
   PImage driverImage = driverImages.get(driverID);
-  driverImage.resize(canvasWidth/2, canvasHeight/2);
-  image(driverImage, canvasWidth/2, canvasHeight/2);
+  driverImage.resize(200, 150);
+  image(driverImage, 30, 150);
 }
 
 void page4()  {
@@ -466,48 +553,45 @@ void page4()  {
    }
 }
 
+// Constructor Details
 void page5() {
-     background(255);
+     background(0);
+     
+    // Hide Controlp5
+    cp5.get("Driver Standings").hide();
+    cp5.get("selectedSeason").hide();
 
      String constructorID = selectedConstructor.getString("name");
      text(constructorID, canvasWidth/2, 20);
      PImage constructorImage = loadImage("/img/constructors/" + selectedConstructor.getString("constructorId") + ".png");
-     constructorImage.resize(canvasWidth/2, canvasHeight/2);
-     image(constructorImage, canvasWidth/2, canvasHeight/2);
+     constructorImage.resize(300, 200);
+     image(constructorImage, 30, 100);
 }
 
 void page6() {
-   background(255);
-
-   JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
-   JSONArray finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
+   background(100);
+   if(dataLoaded) {
+     JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
+     finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
+     dataLoaded = true;
+   }
    
    fill(255,0,0);
    // For each Status
-   int incr1 = 1, incr2 = 1, incr3 = 1;
+   float lastAngle = 0;
+   float totalCount = 0;
    for(int i = 0; i < finishStatusesJSON.size(); i++) {
      JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
      String status = finishStatusJSON.getString("status");
      float count = finishStatusJSON.getFloat("count");
      
-     // Create a circle for each status
-     // Make smaller rows
-     if(i < finishStatusesJSON.size() / 3) {
-       ellipse(incr1 * 100, canvasHeight * .25, count * 0.02, count * 0.02);
-       text(status, incr1 * 98, canvasHeight * .25 + 100);
-       incr1++;
-     }
-     else if(i >= finishStatusesJSON.size() / 3 && i < finishStatusesJSON.size() / 1.5) {
-       ellipse(incr2 * 100, canvasHeight * .50, count * 0.02, count * 0.02);
-       text(status, incr2 *98, canvasHeight * .50 + 100);
-       incr2++;
-     }
-     else if(i >= finishStatusesJSON.size() / 1.5 && i <= finishStatusesJSON.size()) {
-       ellipse(incr3 * 100, canvasHeight * .75, count * 0.02, count * 0.02);
-       text(status, incr3 * 98, canvasHeight * .75 + 100);
-       incr3++;
-     }
-   }
+     totalCount += count;
+     println(status + " -> " + count);
+    float gray = map(i, 0, finishStatusesJSON.size(), 0, 255);
+     fill(gray);
+     arc(width/2, height/2, 300, 300, lastAngle, lastAngle + radians(count));
+     lastAngle += radians(count);   
+   } 
 }
 
 void loadCircuitPointOnMap() {

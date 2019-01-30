@@ -95,6 +95,8 @@ Map<String, MapPosition> mapPositions = new HashMap<String, MapPosition>();
 
 // Fonts
 private PFont font1, font2;
+private PFont titleFont;
+private PFont smallFont;
 
 void settings() {
   size(canvasWidth, canvasHeight, P2D);
@@ -255,6 +257,8 @@ void setup() {
   // Fonts
   font1 = createFont("Arial", 40);
   font2 = createFont("Arial Bold", 42);
+  titleFont = loadFont("Helvetica-22.vlw");
+  smallFont = loadFont("Helvetica-12.vlw");
 }
 
 // Called every time a new frame is available to read
@@ -846,6 +850,7 @@ void page6() {
     finishStatusBarChart.showValueAxis(true);
     finishStatusBarChart.setBarLabels(statusDescriptions);
     finishStatusBarChart.showCategoryAxis(true);
+    finishStatusBarChart.setBarColour(countData, ColourTable.getPresetColourTable(ColourTable.REDS, - maxValue, maxValue));
 
     
     dataLoaded = true;
@@ -871,6 +876,12 @@ void page6() {
   }
   background(255);
   finishStatusBarChart.draw(20,20,width-40,height-40);
+  fill(120);
+  textFont(titleFont);
+  text("Formula 1 Finish Statistics", 70,100);
+  float textHeight = textAscent();
+  textFont(smallFont);
+  text("All time finish statistics", 70,100 + textHeight);
 }
 
 // Drivers

@@ -15,6 +15,8 @@
     private static final String apiURL = "https://ergast.com/api/f1/";
     
     private JSONArray racesJSON;
+    private JSONArray driversJSON;
+    private JSONArray constructorsJSON;
     
     private HashMap<String, JSONObject> circuitsMap = new HashMap<String, JSONObject>();
     private HashMap<String, JSONObject> racesMap = new HashMap<String, JSONObject>();
@@ -274,7 +276,7 @@
           page6(); // Finishing Statistics (Maybe check the drivers with most accidents, finishes, etc...)
         break;
         case 7:
-          page7();
+          page7(); // Drivers
         break;
         default:
           currentPage = 0; // Default page
@@ -317,7 +319,7 @@
     }
     
     void seasonSlider() { 
-      cp5.addSlider("selectedSeason")
+      cp5.addSlider("season")
            .setPosition(canvasWidth/2 - 250,canvasHeight - 15)
            .setColorBackground(color(255,0,0))
            .setColorActive(color(127,0,0))
@@ -335,65 +337,86 @@
       
       // Hide controls
       if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
-      if(cp5.get("selectedSeason") != null) cp5.get("selectedSeason").hide();
+      if(cp5.get("season") != null) cp5.get("season").hide();
       buttonBar.hide();
       
       // Menu
       fill(255);
     
       textFont(font1);
-      text("Circuits", 100, 300);
-      text("Drivers", 100, 400);
-      text("Constructors", 100, 500);
-      text("Finish Statistics", 100, 600);
+      text("Circuits", 100, 500);
+      text("Drivers", 100, 600);
+      text("Constructors", 100, 700);
+      text("Finish Statistics", 100, 800);
       
       // Circuits
-      if(mouseX < 230 && mouseX > 100 && mouseY > 270 && mouseY < 300) {
+      if(mouseX < 230 && mouseX > 100 && mouseY > 475 && mouseY < 500) {
         // Show another image
         image(f1Img2, 0, 0, canvasWidth, canvasHeight);
         // Highlight
         textFont(font2);
-        text("Circuits", 100, 300);
+        text("Circuits", 100, 500);
         textFont(font1);
-        text("Drivers", 100, 400);
-        text("Constructors", 100, 500);
-        text("Finish Statistics", 100, 600);
+        text("Drivers", 100, 600);
+        text("Constructors", 100, 700);
+        text("Finish Statistics", 100, 800);
+        
+         // On Click change page
+        if(mousePressed) {
+          currentPage = 1;
+        }
       }
       // Drivers
-      if(mouseX < 230 && mouseX > 100 && mouseY > 370 && mouseY < 400) {
+      if(mouseX < 230 && mouseX > 100 && mouseY > 575 && mouseY < 600) {
         // Show another image
         image(f1Img3, 0, 0, canvasWidth, canvasHeight);
         // Highlight
         textFont(font2);
-        text("Drivers", 100, 400);
+        text("Drivers", 100, 600);
         textFont(font1);
-        text("Circuits", 100, 300);
-        text("Constructors", 100, 500);
-        text("Finish Statistics", 100, 600);
+        text("Circuits", 100, 500);
+        text("Constructors", 100, 700);
+        text("Finish Statistics", 100, 800);
+        
+        // On Click change page
+        if(mousePressed) {
+          currentPage = 7;
+        }
+        
       }
        // Constructors
-      if(mouseX < 230 && mouseX > 100 && mouseY > 470 && mouseY < 500) {
+      if(mouseX < 320 && mouseX > 100 && mouseY > 675 && mouseY < 700) {
           // Show another image
         image(f1Img5, 0, 0, canvasWidth, canvasHeight);
         // Highlight
         textFont(font2);
-        text("Constructors", 100, 500);
+        text("Constructors", 100, 700);
         textFont(font1);
-        text("Circuits", 100, 300);
-        text("Drivers", 100, 400);
-        text("Finish Statistics", 100, 600);
+        text("Circuits", 100, 500);
+        text("Drivers", 100, 600);
+        text("Finish Statistics", 100, 800);
+        
+         // On Click change page
+        if(mousePressed) {
+          currentPage = 4;
+        }
       }
        // Finish Statistics
-      if(mouseX < 230 && mouseX > 100 && mouseY > 570 && mouseY < 600) {
+      if(mouseX < 360 && mouseX > 100 && mouseY > 775 && mouseY < 800) {
           // Show another image
         image(f1Img4, 0, 0, canvasWidth, canvasHeight);
         // Highlight
         textFont(font2);
-        text("Finish Statistics", 100, 600);
+        text("Finish Statistics", 100, 800);
         textFont(font1);
-        text("Circuits", 100, 300);
-        text("Drivers", 100, 400);
-        text("Constructors", 100, 500);
+        text("Circuits", 100, 500);
+        text("Drivers", 100, 600);
+        text("Constructors", 100, 700);
+        
+         // On Click change page
+        if(mousePressed) {
+          currentPage = 6;
+        }
       }
     }
     
@@ -405,7 +428,7 @@
         
         // Hide controls
         if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
-        if(cp5.get("selectedSeason") != null) cp5.get("selectedSeason").hide();
+        if(cp5.get("season") != null) cp5.get("season").hide();
          
         //shape(map, 0, 0, canvasWidth, canvasHeight - 100);
         fill(255,0,0);    
@@ -476,7 +499,9 @@
        }
     }
     
+    // Circuit Details
     void page2() {
+
       // If data is not loaded, do it
       if(!dataLoaded) { 
           background(0);
@@ -486,13 +511,28 @@
           // Load Circuit  
           JSONObject circuitJSON = selectedRace.getJSONObject("Circuit");
           String circuitName = circuitJSON.getString("circuitName");
-          // Title
-          cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
-          
+          String circuitCountry = circuitJSON.getJSONObject("Location").getString("country");
           String circuitID = circuitJSON.getString("circuitId");
-          println(circuitID);
+          String city = circuitJSON.getJSONObject("Location").getString("locality");
+          String lat = circuitJSON.getJSONObject("Location").getString("lat");
+          String longit = circuitJSON.getJSONObject("Location").getString("long");
+          String wikiURL = circuitJSON.getString("url");
           
-          // Get Driver standings
+          // Show circuit Details
+          text("Circuit Name: " + circuitName, 20, 40);
+          text("City: " + city, 20, 30);
+          text("Latitude: " + lat + "º", 20,50);
+          text("Longitude: " + longit + "º", 20,60);
+          text("Wikipedia Link: " + wikiURL, 20,70);
+          text("Country: " + circuitCountry, 20,80);
+          
+          println(circuitID);
+                  
+          // Title
+          //cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
+          
+          
+         // Get Driver standings
          String round = selectedRace.getString("round");
          JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/results.json").getJSONObject("MRData");
          JSONObject race = (JSONObject) data.getJSONObject("RaceTable").getJSONArray("Races").get(0);
@@ -566,7 +606,13 @@
            .setBarHeight(30)
            .setItemHeight(30)
            .addItems(driverStandingsList);
+           
+          seasonSlider();
           
+           // Buttons for Qualifying and Race
+           cp5.addButton("qualifying").setPosition(100,100).setSize(100,75);
+           cp5.addButton("race").setPosition(200,100).setSize(100,75);
+           
           dataLoaded = true;
       }
       // Create Click events
@@ -624,8 +670,8 @@
       background(0);
       
       // Hide Controlp5
-      cp5.get("Driver Standings").hide();
-      cp5.get("selectedSeason").hide();
+      if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+      if(cp5.get("season") != null) cp5.get("season").hide();
     
       String driverID = selectedDriver.getString("driverId");
       String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
@@ -639,48 +685,76 @@
       image(driverImage, 30, 150);
     }
     
+    // Constructors
     void page4()  {
-       background(255);
-    
-       JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
-       JSONArray constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
       
-       int incr1 = 1, incr2 = 1;
-       for(int i = 0; i < constructorsJSON.size(); i++) {
-         JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
-         PImage constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".png");
-         // TODO
-         if(constructorImage == null) { 
-           constructorImage = loadImage("/img/constructors/" + constructorJSON.getString("constructorId") + ".jpg");
+      if(!dataLoaded) {
+         background(255);
+          
+         JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
+         constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
+        
+         int incr1 = 1, incr2 = 1;
+         for(int i = 0; i < constructorsJSON.size(); i++) {
+           JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
+           String constructorID = constructorJSON.getString("constructorId");
+           PImage constructorImage = constructorImages.get(constructorID);
+           
+           constructorImage.resize(50, 50);
+           
+            // List constructors
+           if(i < constructorsJSON.size() / 2) {
+             image(constructorImage, incr1 * 100, canvasHeight * .33);
+             incr1++;
+             
+              // When user hovers the constructor image
+             if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
+               // If user clicks on the image
+               if(mousePressed)  {
+                 selectedConstructor = constructorJSON;
+                 currentPage = 5;
+               }
+             }
+           }
+           else if(i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
+             image(constructorImage, incr2 * 100, canvasHeight * .66);
+             incr2++;
+             
+             // When user hovers the constructor image
+             if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
+               // If user clicks on the image
+               if(mousePressed)  {
+                 selectedConstructor = constructorJSON;
+                 currentPage = 5;
+               }
+             }
+           }
          }
          
-         constructorImage.resize(50, 50);
-         // List constructors
-         if(i < constructorsJSON.size() / 2) {
-           image(constructorImage, incr1 * 100, canvasHeight * .33);
-           incr1++;
-           
-            // When user hovers the constructor image
-           if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
-             // If user clicks on the image
-             if(mousePressed)  {
-               selectedConstructor = constructorJSON;
-               currentPage = 5;
+          dataLoaded = true;
+       }
+       for(int i = 0; i < constructorsJSON.size(); i++) { 
+          JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
+           // List constructors
+           if(i < constructorsJSON.size() / 2) {    
+              // When user hovers the constructor image
+             if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
+               // If user clicks on the image
+               if(mousePressed)  {
+                 selectedConstructor = constructorJSON;
+                 currentPage = 5;
+               }
              }
            }
-         }
-         else if(i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
-           image(constructorImage, incr2 * 100, canvasHeight * .66);
-           incr2++;
-           
-           // When user hovers the constructor image
-           if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
-             // If user clicks on the image
-             if(mousePressed)  {
-               selectedConstructor = constructorJSON;
-               currentPage = 5;
+           else if(i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
+             // When user hovers the constructor image
+             if(mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
+               // If user clicks on the image
+               if(mousePressed)  {
+                 selectedConstructor = constructorJSON;
+                 currentPage = 5;
+               }
              }
-           }
          }
        }
     }
@@ -690,8 +764,8 @@
          background(0);
          
         // Hide Controlp5
-        cp5.get("Driver Standings").hide();
-        cp5.get("selectedSeason").hide();
+        if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+        if(cp5.get("season") != null) cp5.get("season").hide();
     
          String constructorID = selectedConstructor.getString("name");
          text(constructorID, canvasWidth/2, 20);
@@ -709,7 +783,7 @@
          
         // Hide Controlp5
         if(cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
-        if(cp5.get("selectedSeason") != null) cp5.get("selectedSeason").hide();
+        if(cp5.get("season") != null) cp5.get("season").hide();
        
          fill(255,0,0);
          // For each Status
@@ -742,11 +816,12 @@
        }
     }
     
+    // Drivers
     void page7() {
       if(!dataLoaded) {
         background(255);
         JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
-        JSONArray driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
+        driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
         
         for(int i=0; i < driversJSON.size(); i++) {
           JSONObject driverJSON = (JSONObject) driversJSON.get(i);
@@ -754,6 +829,7 @@
           String driverID = driverJSON.getString("driverId");
           println(driverName);
           println(driverID);
+          println(driverJSON.getString("nationality"));
          
           PImage driverImage = driverImages.get(driverID);
           driverImage.resize(100,100);
@@ -761,6 +837,41 @@
         }
         
         dataLoaded = true;
+      }
+      
+      // For each one of them show details on the bottom and enable to user to click them to see the details
+      for(int i=0; i < driversJSON.size(); i++) {
+        JSONObject driverJSON = (JSONObject) driversJSON.get(i);
+        // If hover
+        if(mouseX < i*100 + 200 && mouseX > i*100 + 100 && mouseY > 100 && mouseY < 200) {
+          // On hover show details
+           String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
+           String driverCode = driverJSON.getString("code");
+           String dateOfBirth = driverJSON.getString("dateOfBirth");
+           String nationality = driverJSON.getString("nationality");
+           String driverID = driverJSON.getString("driverId");
+           String number = driverJSON.getString("permanentNumber");
+             
+           PImage flagImage = flagImages.get(nationality);
+           flagImage.resize(75,50);
+           image(flagImage, 100, 500);
+           
+           PImage driverImage = driverImages.get(driverID);
+           driverImage.resize(100,100);
+           image(driverImage, 50, 500);
+           
+           // Details
+           text(driverName, 150, 500);
+           text(driverCode, 170, 500);
+           text(dateOfBirth, 150, 600);
+           if(number != null) text(number, 200, 600);
+           
+          // If users clicks it, redirect to the driver details
+          if(mousePressed) {
+            selectedDriver = driverJSON;
+            currentPage = 3;
+          }
+        }
       }
     }
     

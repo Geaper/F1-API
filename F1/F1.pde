@@ -29,6 +29,7 @@ private ControlP5 cp5;
 // PitStop plot
 private GPlot plot;
 private BarChart pitStopBarChart;
+private BarChart constructorsChart;
 
 private MapPosition currentHoveringMapPos = new MapPosition(0,0);
 
@@ -73,6 +74,8 @@ private int selectedSeason = 2018;
 private JSONArray resultsJSONArray;
 // Selected finish status
 private JSONArray finishStatusesJSON;
+// Constructors Standings
+private JSONArray constructorsStandingsJSON;
 // Driver Images
 private Map<String, PImage> driverImages = new HashMap<String, PImage>();
 // Circuit Images
@@ -86,6 +89,7 @@ private Map<String, Movie> circuitVideos = new HashMap<String, Movie>();
 
 // Page information loaded?
 private boolean dataLoaded = false;
+private boolean[] circuitHovered;
 
 // Map
 private UnfoldingMap unfoldingMap;
@@ -173,7 +177,9 @@ void setup() {
 
   unfoldingMap = new UnfoldingMap(this);
   unfoldingMap.setTweening(true);
-  unfoldingMap.zoomToLevel(3);
+  unfoldingMap.zoomToLevel(16);
+  Location location = new Location(38.736946, -9.142685);
+  unfoldingMap.zoomAndPanTo(location, 3);
 
   MapUtils.createDefaultEventDispatcher(this, unfoldingMap);
 
@@ -336,6 +342,8 @@ void draw() {
   fill(255, 0, 0);
   textSize(10);
   text("X: " + mouseX + " ,Y: " + mouseY, canvasWidth - 200, 40);
+  
+  text("Zoom: " + unfoldingMap.getZoom(), canvasWidth -400, 40);
 }
 
 // Page 0
@@ -519,6 +527,7 @@ void page1() {
   if (!dataLoaded) {
     seasonSlider();
 
+    circuitHovered = new boolean[racesMap.size()];
     // Marker Image
     //markerImage = loadImage("img/common/marker.png");
     //markerImage.resize((int)(markerImage.width * 0.005), (int) (markerImage.height * 0.005));
@@ -527,10 +536,13 @@ void page1() {
   }
 
   // Loop through the circuits
+  int index = 0;
   for (Map.Entry raceEntry : racesMap.entrySet()) {
     JSONObject raceJSON = (JSONObject) raceEntry.getValue();
     JSONObject circuitJSON = raceJSON.getJSONObject("Circuit");
     String circuitID = (String) circuitJSON.getString("circuitId");
+    
+    circuitHovered[index] = false;
 
     // Get coordinates
     float mapX = ((Double) circuitJSON.get("mapX")).floatValue();
@@ -550,9 +562,10 @@ void page1() {
     // On Hover ...
     if (mouseX < mapPosition.x + 7 && mouseX > mapPosition.x - 7 && mouseY < mapPosition.y + 7 && mouseY > mapPosition.y - 7) {
       
-      println(circuitID);
+      circuitHovered[index] = true;
       
       if(!videoLoaded) {
+          println(circuitID);
         video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
         videoLoaded = true;
       }
@@ -572,8 +585,16 @@ void page1() {
         selectedRace = raceJSON;
       }
     } else {
-      //videoLoaded = false;
+      circuitHovered[index] = false;
+      for(boolean b : circuitHovered) { 
+        println(b);
+        if(b) break;
+        else {
+          videoLoaded = false;
+        }
+      }
     }
+    index++;
   }
 }
 
@@ -809,7 +830,56 @@ void page4() {
         }
       }
     }
+    
+    // Constructor standings for this year
+    data = loadJSONObject(apiURL + selectedSeason + "/constructorStandings.json").getJSONObject("MRData"); //TODO change year
+    constructorsStandingsJSON = ((JSONObject)(data.getJSONObject("StandingsTable").getJSONArray("StandingsLists")).get(0)).getJSONArray("ConstructorStandings");
+    
+    String[] wins = new String[constructorsStandingsJSON.size()];
+    String[] points = new String[constructorsStandingsJSON.size()];
+    String[] constructors = new String[constructorsStandingsJSON.size()];
+    ConstructorStandings[] constructorStandingsArray = new ConstructorStandings[constructorsStandingsJSON.size()];
+    
+    for(int i = 0; i < constructorsStandingsJSON.size(); i++) {
+      JSONObject constructorStandingsJSON = (JSONObject) constructorsStandingsJSON.get(i);
+      // They are ordered
+      points[i] = constructorStandingsJSON.getString("points");
+      wins[i] = constructorStandingsJSON.getString("wins");
+      constructors[i] = constructorStandingsJSON.getJSONObject("Constructor").getString("constructorId");
+            
+      constructorStandingsArray[i] = new ConstructorStandings(constructors[i],points[i],wins[i]);
+    }
 
+     float maxValue = 0;
+  
+     Arrays.sort(constructorStandingsArray);
+
+    float[] pointsData = new float[constructorStandingsArray.length]; 
+    
+    for (int i = 0; i < constructorStandingsArray.length; i++) {
+      points[i] = constructorStandingsArray[i].points;
+      wins[i] = constructorStandingsArray[i].wins;
+      pointsData[i] = Float.parseFloat(points[i]);
+      constructors[i] = constructorStandingsArray[i].constructor;
+      
+      if(Integer.parseInt(points[i]) > maxValue) maxValue = Integer.parseInt(points[i]);
+    }
+
+    constructorsChart = new BarChart(this);
+    constructorsChart.setData(pointsData);
+
+    // Scaling
+    constructorsChart.setMinValue(0);
+    constructorsChart.setMaxValue(maxValue);
+
+    // Axis appearance
+    textFont(createFont("Serif", 10), 10);
+
+    constructorsChart.showValueAxis(true);
+    constructorsChart.setBarLabels(constructors);
+    constructorsChart.showCategoryAxis(true);
+    constructorsChart.setBarColour(pointsData, ColourTable.getPresetColourTable(ColourTable.REDS, - maxValue, maxValue));
+    
     dataLoaded = true;
   }
   for (int i = 0; i < constructorsJSON.size(); i++) { 
@@ -835,6 +905,8 @@ void page4() {
       }
     }
   }
+  // draw constructor standings graph
+  constructorsChart.draw(20, 20, width-40, height-40);
 }
 
 // Constructor Details
@@ -1115,6 +1187,32 @@ class Status implements Comparable<Status> {
     return 0;
   }
 }
+
+class ConstructorStandings implements Comparable<ConstructorStandings> {
+  String  constructor;
+  String points;
+  String wins;
+
+  public ConstructorStandings(String constructor, String points, String wins) {
+    this.constructor = constructor;
+    this.points = points;
+    this.wins = wins;
+  }
+
+  @Override
+    public int compareTo(ConstructorStandings s) {        
+    int points = Integer.parseInt(s.points);
+    int p = Integer.parseInt(this.points);
+    if (p > points) {
+      return 1;
+    } else if (p < points) {
+      return -1;
+    }
+
+    return 0;
+  }
+}
+
 
 class DriverPitStops implements Comparable<DriverPitStops> {
   String  driverName;

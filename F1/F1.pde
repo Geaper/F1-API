@@ -23,14 +23,17 @@ import java.util.Arrays;
 import grafica.*;
 
 private Movie video;
+private boolean videoLoaded = false;
 private boolean videoRunning = false;
 private ControlP5 cp5;
 // PitStop plot
 private GPlot plot;
 private BarChart pitStopBarChart;
 
+private MapPosition currentHoveringMapPos = new MapPosition(0,0);
+
 // API URL
-private static final String apiURL = "https://ergast.com/api/f1/";
+private static final String apiURL = "http://ergast.com/api/f1/";
 
 // Graphs
 private BarChart finishStatusBarChart;
@@ -122,15 +125,30 @@ void bar(int pageIndex) {
   // TODO MAKE ALL PAGE TRANSITIONS
   println(pageIndex);
   switch(pageIndex) {
+  // Initial
   case 0:
     currentPage = 0;
     break;
+  // Circuits
+  case 1:
+    currentPage = 1;
+  break;
+  // Drivers
   case 2:
     currentPage = 7;
     break;
+  // Constructors
+  case 3:
+    currentPage = 4;
+  break;
+  // Finish Statistics
   case 4:
     currentPage = 6;
     break;
+  case 5:
+  // Pit Stops
+    currentPage = 8;
+  break;
   }
 
   dataLoaded = false;
@@ -166,7 +184,7 @@ void setup() {
   menuNames.add("Drivers");
   menuNames.add("Constructors");
   menuNames.add("Finish Statistics");
-  menuNames.add("Lap Times");
+  menuNames.add("Pit Stops");
 
   // Button Bar
   buttonBar = cp5.addButtonBar("bar")
@@ -178,6 +196,7 @@ void setup() {
   loadCircuitPointOnMap();
 
   // Load all videos
+  /*
   String[] fileNames = listFileNames(sketchPath() + "/data/circuit_videos");
   println("Loading Videos");
   for (String fileName : fileNames) {
@@ -187,9 +206,10 @@ void setup() {
     video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
     circuitVideos.put(circuitID, video);
   }
+  */
 
   // Load All Flag Images
-  fileNames = listFileNames(sketchPath() + "/img/flags");
+  String[] fileNames = listFileNames(sketchPath() + "/img/flags");
   println("Loading Flags");
   for (String fileName : fileNames) {
     // remove extension
@@ -321,6 +341,10 @@ void draw() {
 // Page 0
 void page0() {
   buttonBar.hide();
+  if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+  if (cp5.get("season") != null) cp5.get("season").hide();
+  if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
+  if (cp5.get("race") != null) cp5.get("race").hide();
   // Load Images
   // Background
   f1Background.resize(canvasWidth, canvasHeight);
@@ -367,6 +391,8 @@ void page99() {
   // Hide controls
   if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
   if (cp5.get("season") != null) cp5.get("season").hide();
+  if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
+  if (cp5.get("race") != null) cp5.get("race").hide();
   buttonBar.hide();
 
   // Menu
@@ -494,8 +520,8 @@ void page1() {
     seasonSlider();
 
     // Marker Image
-    markerImage = loadImage("img/common/marker.png");
-    markerImage.resize((int)(markerImage.width * 0.005), (int) (markerImage.height * 0.005));
+    //markerImage = loadImage("img/common/marker.png");
+    //markerImage.resize((int)(markerImage.width * 0.005), (int) (markerImage.height * 0.005));
 
     dataLoaded = true;
   }
@@ -521,20 +547,22 @@ void page1() {
     //ImageMarker imgMarker1 = new ImageMarker(mapLocation, markerImage);
     //unfoldingMap.addMarkers(imgMarker1);
 
-
     // On Hover ...
     if (mouseX < mapPosition.x + 7 && mouseX > mapPosition.x - 7 && mouseY < mapPosition.y + 7 && mouseY > mapPosition.y - 7) {
-
+      
+      println(circuitID);
+      
+      if(!videoLoaded) {
+        video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
+        videoLoaded = true;
+      }
+      
       // Title on top of the video
       textSize(22);
       text(circuitJSON.getString("circuitName"), 150, 135);
-
-      video = circuitVideos.get(circuitID);
-      image(video, 50, 150, video.width * 0.75, video.height * 0.75);
-      video.loop();
-      videoRunning = true;
-
-      // Border on t
+       
+       image(video, 50, 150, video.width * 0.75, video.height * 0.75);
+       video.loop();
 
       // When the user clicks this circle, change page
       if (mousePressed) {
@@ -544,12 +572,7 @@ void page1() {
         selectedRace = raceJSON;
       }
     } else {
-      // TODO BUG!!
-      if (videoRunning) {
-        // Stop video
-        //video.pause();
-        videoRunning = false;
-      }
+      //videoLoaded = false;
     }
   }
 }
@@ -727,6 +750,8 @@ void page3() {
   // Hide Controlp5
   if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
   if (cp5.get("season") != null) cp5.get("season").hide();
+  if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
+  if (cp5.get("race") != null) cp5.get("race").hide();
 
   String driverID = selectedDriver.getString("driverId");
   String driverName = selectedDriver.getString("givenName") + " " + selectedDriver.getString("familyName");
@@ -819,10 +844,12 @@ void page5() {
   // Hide Controlp5
   if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
   if (cp5.get("season") != null) cp5.get("season").hide();
+  if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
+  if (cp5.get("race") != null) cp5.get("race").hide();
 
-  String constructorID = selectedConstructor.getString("name");
+  String constructorID = selectedConstructor.getString("constructorId");
   text(constructorID, canvasWidth/2, 20);
-  PImage constructorImage = loadImage("/img/constructors/" + selectedConstructor.getString("constructorId") + ".png");
+  PImage constructorImage = constructorImages.get(constructorID);
   constructorImage.resize(300, 200);
   image(constructorImage, 30, 100);
 }
@@ -838,6 +865,8 @@ void page6() {
     // Hide Controlp5
     if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
     if (cp5.get("season") != null) cp5.get("season").hide();
+    if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
+    if (cp5.get("race") != null) cp5.get("race").hide();
 
     fill(255, 0, 0);
     // For each Status

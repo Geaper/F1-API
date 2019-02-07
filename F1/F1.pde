@@ -30,6 +30,7 @@ private ControlP5 cp5;
 private GPlot plot;
 private BarChart pitStopBarChart;
 private BarChart constructorsChart;
+private XYChart driverPointsLineChart;
 
 private MapPosition currentHoveringMapPos = new MapPosition(0,0);
 
@@ -1020,53 +1021,108 @@ void page6() {
 
 // Drivers
 void page7() {
+  background(38,24,34);
   if (!dataLoaded) {
-    background(255);
     JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
-
-    for (int i=0; i < driversJSON.size(); i++) {
-      JSONObject driverJSON = (JSONObject) driversJSON.get(i);
-      String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
-      String driverID = driverJSON.getString("driverId");
-      println(driverName);
-      println(driverID);
-      println(driverJSON.getString("nationality"));
-
-      PImage driverImage = driverImages.get(driverID);
-      driverImage.resize(100, 100);
-      image(driverImage, i * 100 + 100, 100);
-    }
-
+    
     dataLoaded = true;
   }
 
   // For each one of them show details on the bottom and enable to user to click them to see the details
   for (int i=0; i < driversJSON.size(); i++) {
     JSONObject driverJSON = (JSONObject) driversJSON.get(i);
+    String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
+    String driverID = driverJSON.getString("driverId");
+    PImage driverImage = driverImages.get(driverID);
+    
+    driverImage.resize(150, 190);
+    // Makes rows of driver images
+    int imgPosX = 0, imgPosY = 0;
+    if(i < 5) {
+       imgPosX = i * 150 + 800;
+      imgPosY = 90;
+    }
+    else if (i >= 5 && i < 10) {  
+       imgPosX = (i-5) * 150 + 800;
+      imgPosY = 280;
+    }
+    else if(i >= 10 && i < 15) {
+     imgPosX = (i-10) * 150 + 800;
+      imgPosY = 470;
+    }
+    else {
+      imgPosX = (i-15) * 150 + 800;
+      imgPosY = 660;
+    }
+    
+     image(driverImage, imgPosX, imgPosY);
+
+    
     // If hover
-    if (mouseX < i*100 + 200 && mouseX > i*100 + 100 && mouseY > 100 && mouseY < 200) {
+    if (mouseX < imgPosX + 150 && mouseX > imgPosX && mouseY > imgPosY && mouseY < imgPosY + 190) {
       // On hover show details
-      String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
       String driverCode = driverJSON.getString("code");
       String dateOfBirth = driverJSON.getString("dateOfBirth");
       String nationality = driverJSON.getString("nationality");
-      String driverID = driverJSON.getString("driverId");
       String number = driverJSON.getString("permanentNumber");
 
       PImage flagImage = flagImages.get(nationality);
       flagImage.resize(75, 50);
-      image(flagImage, 100, 500);
-
-      PImage driverImage = driverImages.get(driverID);
-      driverImage.resize(100, 100);
-      image(driverImage, 50, 500);
+      image(flagImage, 35, 500);
+      
+      PImage driverImage2 = driverImage.copy();
+      driverImage2.resize(300, 400);
+      image(driverImage2, 30, 90);
+       println(driverID);
+    println(driverImage.width * driverImage.height);
 
       // Details
-      text(driverName, 150, 500);
-      text(driverCode, 170, 500);
-      text(dateOfBirth, 150, 600);
-      if (number != null) text(number, 200, 600);
+      fill(255);
+      textSize(32);
+      text(driverName, 350, 110);
+      text(driverCode, 350, 160);
+      text(dateOfBirth, 350, 200);
+      if (number != null) {
+        textSize(90);
+        text(number, 350, 450);
+      }
+      
+      // Graph showing the points obtained by this driver for the season
+      JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + driverID + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+      // For each race, get the driver points
+      float[] pointsArray = new float[dataRaces.size()];
+      float[] roundsArray = new float[dataRaces.size()];
+      for(int j = 0; j < dataRaces.size(); j++) {
+        JSONObject raceJSON = (JSONObject) dataRaces.get(j);
+        float round = Float.parseFloat(raceJSON.getString("round"));
+        float points = Float.parseFloat(((JSONObject) raceJSON.getJSONArray("Results").get(0)).getString("points"));
+        // Add to array
+        roundsArray[i] = round;
+        pointsArray[i] = points;
+        println("Points: " + points + " , Round: " + round);
+      }
+      
+        driverPointsLineChart = new XYChart(this);
+        driverPointsLineChart.setData(roundsArray, pointsArray);
+         
+        // Axis formatting and labels.
+        driverPointsLineChart.showXAxis(true); 
+        driverPointsLineChart.showYAxis(true); 
+           
+        // Symbol colours
+        driverPointsLineChart.setPointColour(color(255));
+        driverPointsLineChart.setPointSize(3);
+        driverPointsLineChart.setLineWidth(2);
+      
+       driverPointsLineChart.draw(15,500,500,400);
+   
+      // Draw a title over the top of the chart.
+      fill(255);
+      textSize(10);
+      //text("Income per person, United Kingdom", 25,30);
+      textSize(11);
+      //text("Gross domestic product measured in inflation-corrected $US", 70,45);
 
       // If users clicks it, redirect to the driver details
       if (mousePressed) {

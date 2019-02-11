@@ -34,6 +34,14 @@ private XYChart driverPointsLineChart;
 
 private MapPosition currentHoveringMapPos = new MapPosition(0,0);
 
+// Status Array
+private Status[] statusArray;
+
+// Colors
+private color red = color(225,6,0);
+private color grey = color(204);
+private color lighterRed = color(204,4,31);
+
 // API URL
 private static final String apiURL = "http://ergast.com/api/f1/";
 
@@ -54,6 +62,7 @@ private int currentPage = 0;
 // Images
 private PImage f1Logo;
 private PImage f1Background;
+private PImage f1Background2;
 private PImage f1Img1, f1Img2, f1Img3, f1Img4, f1Img5, f1Img6;
 private PImage ipcaLogo;
 
@@ -172,15 +181,16 @@ void setup() {
 
   // Animation
   Ani.init(this);
-
+  
   // Unfolding Map
-  smooth();  // instrucao para suavisar graficos em todo o programa
-
+  //smooth();  // instrucao para suavisar graficos em todo o programa
+  
   unfoldingMap = new UnfoldingMap(this);
   unfoldingMap.setTweening(true);
   unfoldingMap.zoomToLevel(16);
   Location location = new Location(38.736946, -9.142685);
   unfoldingMap.zoomAndPanTo(location, 3);
+  unfoldingMap.setScaleRange(8f,300f);
 
   MapUtils.createDefaultEventDispatcher(this, unfoldingMap);
 
@@ -196,7 +206,10 @@ void setup() {
   // Button Bar
   buttonBar = cp5.addButtonBar("bar")
     .setPosition(0, 0)
-    .setSize(canvasWidth, 20)
+    .setSize(canvasWidth, 30)
+    .setColorBackground(0)
+    .setColorActive(red)
+    .setColorForeground(lighterRed)
     .addItems(menuNames);
 
   // Load Map positions
@@ -277,6 +290,7 @@ void setup() {
   // Common Stuff
   f1Logo = loadImage("img/common/f1-logo2.png");
   f1Background = loadImage("img/common/f1-background.jpg");
+  f1Background2 = loadImage("img/common/f1-background3.jpg");
   ipcaLogo = loadImage("img/common/ipca.png");
   f1Img1 = loadImage("img/common/f1-background2.jpg");
   f1Img2 = loadImage("img/common/f1-circuit-background.jpg");
@@ -513,7 +527,7 @@ void page99() {
 
 // Page 1
 void page1() {
-  background(255);
+  background(0);
   // Load Map
   unfoldingMap.draw();
 
@@ -929,8 +943,9 @@ void page5() {
 
 // Finish Status
 void page6() {
+  PFont font = createFont("serif bold", 25);
   if (!dataLoaded) {
-    background(255);
+    //background(255);
     JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
     finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
     dataLoaded = true;
@@ -946,7 +961,7 @@ void page6() {
     float lastAngle = 0;
     float totalCount = 0;
     float maxValue = 0;
-    Status[] statusArray = new Status[finishStatusesJSON.size()];
+    statusArray = new Status[finishStatusesJSON.size()];
 
     for (int i = 0; i < finishStatusesJSON.size(); i++) {
       JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
@@ -954,13 +969,12 @@ void page6() {
       String status = finishStatusJSON.getString("status");
       totalCount += count;
 
-
+      //Remove Finished, n Laps
       Status statusObj = new Status(status, count);
+      statusArray[i] = statusObj;
 
       // Max value of the table
       if (maxValue < count) maxValue = count;
-
-      statusArray[i] = statusObj;
     }
 
     Arrays.sort(statusArray);
@@ -970,6 +984,7 @@ void page6() {
     for (int i = 0; i < statusArray.length; i++) {
       statusDescriptions[i] = statusArray[i].status;
       countData[i] = statusArray[i].count;
+    
     }
 
     finishStatusBarChart = new BarChart(this);
@@ -985,38 +1000,78 @@ void page6() {
     finishStatusBarChart.showValueAxis(true);
     finishStatusBarChart.setBarLabels(statusDescriptions);
     finishStatusBarChart.showCategoryAxis(true);
-    finishStatusBarChart.setBarColour(countData, ColourTable.getPresetColourTable(ColourTable.REDS, - maxValue, maxValue));
-
+    finishStatusBarChart.setBarColour(countData, ColourTable.getPresetColourTable(ColourTable.YL_OR_RD, - maxValue, maxValue));
+    finishStatusBarChart.setAxisLabelColour(255);
+    finishStatusBarChart.setAxisValuesColour(255);
+    finishStatusBarChart.transposeAxes(true);
+    finishStatusBarChart.setShowEdge(true);
 
     dataLoaded = true;
-
-    for (int i = 0; i < finishStatusesJSON.size(); i++) {  
-      JSONObject finishStatusJSON = (JSONObject) finishStatusesJSON.get(i);
-      float count = finishStatusJSON.getFloat("count");
-      String status = finishStatusJSON.getString("status");
-
-      // Normalize to 360
-      count = (count*360)/totalCount;
-
-      color randomColor = color(random(255), random(255), random(255), random(255));
-      fill(randomColor); 
-      arc(width/2, height/2, 400, 400, lastAngle, lastAngle + radians(count));
-      lastAngle += radians(count);   
-
-      // Description on the right
-      rect(canvasWidth - 200, i * 20 + 150, 20, 20);
-      textSize(16);
-      text(status, canvasWidth - 175, i * 20 + 150);
-    }
+    
   }
   background(255);
-  finishStatusBarChart.draw(20, 20, width-40, height-40);
-  fill(120);
+  tint(255,220);
+  f1Background2.resize(canvasWidth, canvasHeight);
+  image(f1Background2,0,0);
+    
+  finishStatusBarChart.draw(20, 60, canvasWidth - 40, canvasHeight-60);
+  fill(255);
+  
   textFont(titleFont);
-  text("Formula 1 Finish Statistics", 70, 100);
+  text("Formula 1 Finish Statistics", 150, 100);
   float textHeight = textAscent();
   textFont(smallFont);
-  text("All time finish statistics", 70, 100 + textHeight);
+  text("All time finish statistics", 150, 100 + textHeight);
+  
+  for (int i = 0; i < statusArray.length; i++) {    
+      // Show data on the right
+      fill(255);
+      textFont(font);
+      int posX = 0, posY = 0;
+
+      if(i == 0) {
+          posX = 800;
+          posY = 100;
+          fill(254, 53, 50);
+      }
+      else if(i == 1) {
+          posX = 1000;
+          posY = 100;
+           fill(255);
+      }
+      else if(i == 2) {
+          posX = 1200;
+          posY = 100;
+          fill(255,168,9);
+      }
+      else if(i == statusArray.length - 3) {
+          posX = 800;
+          posY = 200;
+          fill(255,168,9);
+      }
+      else if(i == statusArray.length - 2) {
+          posX = 1000;
+          posY = 200;
+          fill(254, 53, 50);
+      }
+     else if(i == statusArray.length - 1) {
+          posX = 1200;
+          posY = 200;
+          fill(255);
+     }  
+    if(i < 3) {
+      text(statusArray[i].status, posX, posY);
+      text((int)statusArray[i].count, posX, posY + 50);
+      fill(255);
+      text("Less Common", 600, 125);
+    }
+    else if(i > statusArray.length - 4) {
+      text(statusArray[i].status, posX, posY);
+      text((int)statusArray[i].count, posX, posY + 50);
+      fill(255);
+      text("Most Common", 600, 225);
+    }
+  }
 }
 
 // Drivers
@@ -1195,7 +1250,7 @@ void page8() {
     pitStopBarChart.setMaxValue(maxValue);
 
     // Axis appearance
-    textFont(createFont("Serif", 10), 10);
+    textFont(createFont("Serif Bold", 10), 10);
 
     pitStopBarChart.showValueAxis(true);
     pitStopBarChart.setBarLabels(driverNames);
@@ -1233,11 +1288,13 @@ class Status implements Comparable<Status> {
   }
 
   @Override
-    public int compareTo(Status s) {        
-    if (this.count > s.count) {
-      return 1;
-    } else if (this.count < s.count) {
-      return -1;
+    public int compareTo(Status s) {  
+    if(s != null) {
+      if (this.count > s.count) {
+        return 1;
+      } else if (this.count < s.count) {
+        return -1;
+      }
     }
 
     return 0;

@@ -31,16 +31,17 @@ private GPlot plot;
 private BarChart pitStopBarChart;
 private BarChart constructorsChart;
 private XYChart driverPointsLineChart;
+private ArrayList<DriverCircle> driverCircles;
 
-private MapPosition currentHoveringMapPos = new MapPosition(0,0);
+private MapPosition currentHoveringMapPos = new MapPosition(0, 0);
 
 // Status Array
 private Status[] statusArray;
 
 // Colors
-private color red = color(225,6,0);
+private color red = color(225, 6, 0);
 private color grey = color(204);
-private color lighterRed = color(204,4,31);
+private color lighterRed = color(204, 4, 31);
 
 // API URL
 private static final String apiURL = "http://ergast.com/api/f1/";
@@ -56,6 +57,7 @@ private HashMap<String, JSONObject> circuitsMap = new HashMap<String, JSONObject
 private HashMap<String, JSONObject> racesMap = new HashMap<String, JSONObject>();
 
 private ButtonBar buttonBar;
+private ButtonBar circuitBar;
 
 private int currentPage = 0;
 
@@ -64,6 +66,7 @@ private PImage f1Logo;
 private PImage f1Background;
 private PImage f1Background2;
 private PImage f1Img1, f1Img2, f1Img3, f1Img4, f1Img5, f1Img6;
+private PImage pitStopImg;
 private PImage ipcaLogo;
 
 // Default settings
@@ -72,6 +75,8 @@ private final int canvasHeight = 900;
 
 // Buttons
 
+//Selected Round
+private String selectedRound = "1";
 // Selected Race
 private JSONObject selectedRace;
 // Selected Driver
@@ -136,33 +141,31 @@ String[] listFileNames(String dir) {
 
 // Call back event of menu bar
 void bar(int pageIndex) {
-  // TODO MAKE ALL PAGE TRANSITIONS
-  println(pageIndex);
   switch(pageIndex) {
-  // Initial
+    // Initial
   case 0:
     currentPage = 0;
     break;
-  // Circuits
+    // Circuits
   case 1:
     currentPage = 1;
-  break;
-  // Drivers
+    break;
+    // Drivers
   case 2:
     currentPage = 7;
     break;
-  // Constructors
+    // Constructors
   case 3:
     currentPage = 4;
-  break;
-  // Finish Statistics
+    break;
+    // Finish Statistics
   case 4:
     currentPage = 6;
     break;
   case 5:
-  // Pit Stops
+    // Pit Stops
     currentPage = 8;
-  break;
+    break;
   }
 
   dataLoaded = false;
@@ -181,16 +184,16 @@ void setup() {
 
   // Animation
   Ani.init(this);
-  
+
   // Unfolding Map
   //smooth();  // instrucao para suavisar graficos em todo o programa
-  
+
   unfoldingMap = new UnfoldingMap(this);
   unfoldingMap.setTweening(true);
   unfoldingMap.zoomToLevel(16);
   Location location = new Location(38.736946, -9.142685);
   unfoldingMap.zoomAndPanTo(location, 3);
-  unfoldingMap.setScaleRange(8f,300f);
+  unfoldingMap.setScaleRange(8f, 300f);
 
   MapUtils.createDefaultEventDispatcher(this, unfoldingMap);
 
@@ -217,16 +220,16 @@ void setup() {
 
   // Load all videos
   /*
-  String[] fileNames = listFileNames(sketchPath() + "/data/circuit_videos");
-  println("Loading Videos");
-  for (String fileName : fileNames) {
-    // remove extension
-    String circuitID = fileName.split("\\.")[0];
-    // Load videos
-    video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
-    circuitVideos.put(circuitID, video);
-  }
-  */
+    String[] fileNames = listFileNames(sketchPath() + "/data/circuit_videos");
+   println("Loading Videos");
+   for (String fileName : fileNames) {
+   // remove extension
+   String circuitID = fileName.split("\\.")[0];
+   // Load videos
+   video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
+   circuitVideos.put(circuitID, video);
+   }
+   */
 
   // Load All Flag Images
   String[] fileNames = listFileNames(sketchPath() + "/img/flags");
@@ -298,12 +301,14 @@ void setup() {
   f1Img4 = loadImage("img/common/f1-finishStatus-background.jpg");
   f1Img5 = loadImage("img/common/f1-constructors-background.jpg");
   f1Img6 = loadImage("img/common/f1-pitstops-background.jpg");
+  pitStopImg = loadImage("img/common/pitstop.jpg");
+  pitStopImg.resize(canvasWidth, canvasHeight);
 
   // Fonts
   font1 = createFont("Arial", 40);
   font2 = createFont("Arial Bold", 42);
-  titleFont = loadFont("Helvetica-22.vlw");
-  smallFont = loadFont("Helvetica-12.vlw");
+  titleFont = createFont("Arial Bold", 42);
+  smallFont = createFont("Arial", 30);
 }
 
 // Called every time a new frame is available to read
@@ -357,7 +362,7 @@ void draw() {
   fill(255, 0, 0);
   textSize(10);
   text("X: " + mouseX + " ,Y: " + mouseY, canvasWidth - 200, 40);
-  
+
   text("Zoom: " + unfoldingMap.getZoom(), canvasWidth -400, 40);
 }
 
@@ -395,16 +400,18 @@ void page0() {
 }
 
 void seasonSlider() { 
-  cp5.addSlider("season")
-    .setPosition(canvasWidth/2 - 250, canvasHeight - 15)
-    .setColorBackground(color(255, 0, 0))
-    .setColorActive(color(127, 0, 0))
-    .setColorTickMark(color(0, 0, 0))
-    .setSize(450, 15)
-    .setRange(2015, 2018) // values can range from big to small as well
-    .setValue(2015)
-    .setNumberOfTickMarks(4)
-    .setSliderMode(Slider.FLEXIBLE);
+  if(cp5.get("season") != null) {
+    cp5.addSlider("season")
+      .setPosition(canvasWidth/2 - 250, canvasHeight - 15)
+      .setColorBackground(color(255, 0, 0))
+      .setColorActive(color(127, 0, 0))
+      .setColorTickMark(color(0, 0, 0))
+      .setSize(450, 15)
+      .setRange(2015, 2018) // values can range from big to small as well
+      .setValue(2015)
+      .setNumberOfTickMarks(4)
+      .setSliderMode(Slider.FLEXIBLE);
+    }
 }
 
 void page99() {
@@ -556,7 +563,7 @@ void page1() {
     JSONObject raceJSON = (JSONObject) raceEntry.getValue();
     JSONObject circuitJSON = raceJSON.getJSONObject("Circuit");
     String circuitID = (String) circuitJSON.getString("circuitId");
-    
+
     circuitHovered[index] = false;
 
     // Get coordinates
@@ -576,21 +583,21 @@ void page1() {
 
     // On Hover ...
     if (mouseX < mapPosition.x + 7 && mouseX > mapPosition.x - 7 && mouseY < mapPosition.y + 7 && mouseY > mapPosition.y - 7) {
-      
+
       circuitHovered[index] = true;
-      
-      if(!videoLoaded) {
-          println(circuitID);
+
+      if (!videoLoaded) {
+        println(circuitID);
         video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
         videoLoaded = true;
       }
-      
+
       // Title on top of the video
       textSize(22);
       text(circuitJSON.getString("circuitName"), 150, 135);
-       
-       image(video, 50, 150, video.width * 0.75, video.height * 0.75);
-       video.loop();
+
+      image(video, 50, 150, video.width * 0.75, video.height * 0.75);
+      video.loop();
 
       // When the user clicks this circle, change page
       if (mousePressed) {
@@ -601,9 +608,8 @@ void page1() {
       }
     } else {
       circuitHovered[index] = false;
-      for(boolean b : circuitHovered) { 
-        println(b);
-        if(b) break;
+      for (boolean b : circuitHovered) { 
+        if (b) break;
         else {
           videoLoaded = false;
         }
@@ -639,8 +645,6 @@ void page2() {
     text("Longitude: " + longit + "º", 20, 60);
     text("Wikipedia Link: " + wikiURL, 20, 70);
     text("Country: " + circuitCountry, 20, 80);
-
-    println(circuitID);
 
     // Title
     //cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
@@ -845,39 +849,39 @@ void page4() {
         }
       }
     }
-    
+
     // Constructor standings for this year
     data = loadJSONObject(apiURL + selectedSeason + "/constructorStandings.json").getJSONObject("MRData"); //TODO change year
     constructorsStandingsJSON = ((JSONObject)(data.getJSONObject("StandingsTable").getJSONArray("StandingsLists")).get(0)).getJSONArray("ConstructorStandings");
-    
+
     String[] wins = new String[constructorsStandingsJSON.size()];
     String[] points = new String[constructorsStandingsJSON.size()];
     String[] constructors = new String[constructorsStandingsJSON.size()];
     ConstructorStandings[] constructorStandingsArray = new ConstructorStandings[constructorsStandingsJSON.size()];
-    
-    for(int i = 0; i < constructorsStandingsJSON.size(); i++) {
+
+    for (int i = 0; i < constructorsStandingsJSON.size(); i++) {
       JSONObject constructorStandingsJSON = (JSONObject) constructorsStandingsJSON.get(i);
       // They are ordered
       points[i] = constructorStandingsJSON.getString("points");
       wins[i] = constructorStandingsJSON.getString("wins");
       constructors[i] = constructorStandingsJSON.getJSONObject("Constructor").getString("constructorId");
-            
-      constructorStandingsArray[i] = new ConstructorStandings(constructors[i],points[i],wins[i]);
+
+      constructorStandingsArray[i] = new ConstructorStandings(constructors[i], points[i], wins[i]);
     }
 
-     float maxValue = 0;
-  
-     Arrays.sort(constructorStandingsArray);
+    float maxValue = 0;
+
+    Arrays.sort(constructorStandingsArray);
 
     float[] pointsData = new float[constructorStandingsArray.length]; 
-    
+
     for (int i = 0; i < constructorStandingsArray.length; i++) {
       points[i] = constructorStandingsArray[i].points;
       wins[i] = constructorStandingsArray[i].wins;
       pointsData[i] = Float.parseFloat(points[i]);
       constructors[i] = constructorStandingsArray[i].constructor;
-      
-      if(Integer.parseInt(points[i]) > maxValue) maxValue = Integer.parseInt(points[i]);
+
+      if (Integer.parseInt(points[i]) > maxValue) maxValue = Integer.parseInt(points[i]);
     }
 
     constructorsChart = new BarChart(this);
@@ -894,7 +898,7 @@ void page4() {
     constructorsChart.setBarLabels(constructors);
     constructorsChart.showCategoryAxis(true);
     constructorsChart.setBarColour(pointsData, ColourTable.getPresetColourTable(ColourTable.REDS, - maxValue, maxValue));
-    
+
     dataLoaded = true;
   }
   for (int i = 0; i < constructorsJSON.size(); i++) { 
@@ -984,7 +988,6 @@ void page6() {
     for (int i = 0; i < statusArray.length; i++) {
       statusDescriptions[i] = statusArray[i].status;
       countData[i] = statusArray[i].count;
-    
     }
 
     finishStatusBarChart = new BarChart(this);
@@ -1007,80 +1010,82 @@ void page6() {
     finishStatusBarChart.setShowEdge(true);
 
     dataLoaded = true;
-    
   }
   background(255);
-  tint(255,220);
+  tint(255, 220);
   f1Background2.resize(canvasWidth, canvasHeight);
-  image(f1Background2,0,0);
-    
+  image(f1Background2, 0, 0);
+
   finishStatusBarChart.draw(20, 60, canvasWidth - 40, canvasHeight-60);
   fill(255);
-  
+
   textFont(titleFont);
   text("Formula 1 Finish Statistics", 150, 100);
   float textHeight = textAscent();
   textFont(smallFont);
   text("All time finish statistics", 150, 100 + textHeight);
-  
-  for (int i = 0; i < statusArray.length; i++) {    
-      // Show data on the right
-      fill(255);
-      textFont(font);
-      int posX = 0, posY = 0;
 
-      if(i == 0) {
-          posX = 800;
-          posY = 100;
-          fill(254, 53, 50);
-      }
-      else if(i == 1) {
-          posX = 1000;
-          posY = 100;
-           fill(255);
-      }
-      else if(i == 2) {
-          posX = 1200;
-          posY = 100;
-          fill(255,168,9);
-      }
-      else if(i == statusArray.length - 3) {
-          posX = 800;
-          posY = 200;
-          fill(255,168,9);
-      }
-      else if(i == statusArray.length - 2) {
-          posX = 1000;
-          posY = 200;
-          fill(254, 53, 50);
-      }
-     else if(i == statusArray.length - 1) {
-          posX = 1200;
-          posY = 200;
-          fill(255);
-     }  
-    if(i < 3) {
-      text(statusArray[i].status, posX, posY);
-      text((int)statusArray[i].count, posX, posY + 50);
+  for (int i = 0; i < statusArray.length; i++) {    
+    // Show data on the right
+    fill(255);
+    textFont(font);
+    int posX = 0, posY = 0;
+
+    if (i == 0) {
+      posX = 1000;
+      posY = 100;
+      fill(254, 53, 50);
+    } else if (i == 1) {
+      posX = 1200;
+      posY = 100;
       fill(255);
-      text("Less Common", 600, 125);
-    }
-    else if(i > statusArray.length - 4) {
-      text(statusArray[i].status, posX, posY);
-      text((int)statusArray[i].count, posX, posY + 50);
+    } else if (i == 2) {
+      posX = 1400;
+      posY = 100;
+      fill(255, 168, 9);
+    } else if (i == statusArray.length - 3) {
+      posX = 1000;
+      posY = 200;
+      fill(255, 168, 9);
+    } else if (i == statusArray.length - 2) {
+      posX = 1200;
+      posY = 200;
+      fill(254, 53, 50);
+    } else if (i == statusArray.length - 1) {
+      posX = 1400;
+      posY = 200;
       fill(255);
-      text("Most Common", 600, 225);
+    }  
+
+    // Stroke for the graphs
+    stroke(0); 
+    if (i < 3) {
+      text(statusArray[i].status, posX +50, posY);
+      text((int)statusArray[i].count, posX + 50, posY + 50);
+      fill(255);
+      text("Less Common", 800, 120);
+
+      // Draw line
+      if (i == 2) {
+        stroke(255);
+        line(800, 165, 1560, 165);
+      }
+    } else if (i > statusArray.length - 4) {
+      text(statusArray[i].status, posX +50, posY);
+      text((int)statusArray[i].count, posX +50, posY + 50);
+      fill(255);
+      text("Most Common", 800, 220);
     }
   }
 }
 
 // Drivers
 void page7() {
-  background(38,24,34);
+  background(38, 24, 34);
   if (!dataLoaded) {
     JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
-    
+
     dataLoaded = true;
   }
 
@@ -1090,30 +1095,27 @@ void page7() {
     String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
     String driverID = driverJSON.getString("driverId");
     PImage driverImage = driverImages.get(driverID);
-    
+
     driverImage.resize(150, 190);
     // Makes rows of driver images
     int imgPosX = 0, imgPosY = 0;
-    if(i < 5) {
-       imgPosX = i * 150 + 800;
+    if (i < 5) {
+      imgPosX = i * 150 + 800;
       imgPosY = 90;
-    }
-    else if (i >= 5 && i < 10) {  
-       imgPosX = (i-5) * 150 + 800;
+    } else if (i >= 5 && i < 10) {  
+      imgPosX = (i-5) * 150 + 800;
       imgPosY = 280;
-    }
-    else if(i >= 10 && i < 15) {
-     imgPosX = (i-10) * 150 + 800;
+    } else if (i >= 10 && i < 15) {
+      imgPosX = (i-10) * 150 + 800;
       imgPosY = 470;
-    }
-    else {
+    } else {
       imgPosX = (i-15) * 150 + 800;
       imgPosY = 660;
     }
-    
-     image(driverImage, imgPosX, imgPosY);
 
-    
+    image(driverImage, imgPosX, imgPosY);
+
+
     // If hover
     if (mouseX < imgPosX + 150 && mouseX > imgPosX && mouseY > imgPosY && mouseY < imgPosY + 190) {
       // On hover show details
@@ -1125,12 +1127,10 @@ void page7() {
       PImage flagImage = flagImages.get(nationality);
       flagImage.resize(75, 50);
       image(flagImage, 35, 500);
-      
+
       PImage driverImage2 = driverImage.copy();
       driverImage2.resize(300, 400);
       image(driverImage2, 30, 90);
-       println(driverID);
-    println(driverImage.width * driverImage.height);
 
       // Details
       fill(255);
@@ -1142,36 +1142,35 @@ void page7() {
         textSize(90);
         text(number, 350, 450);
       }
-      
+
       // Graph showing the points obtained by this driver for the season
       JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + driverID + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
       // For each race, get the driver points
       float[] pointsArray = new float[dataRaces.size()];
       float[] roundsArray = new float[dataRaces.size()];
-      for(int j = 0; j < dataRaces.size(); j++) {
+      for (int j = 0; j < dataRaces.size(); j++) {
         JSONObject raceJSON = (JSONObject) dataRaces.get(j);
         float round = Float.parseFloat(raceJSON.getString("round"));
         float points = Float.parseFloat(((JSONObject) raceJSON.getJSONArray("Results").get(0)).getString("points"));
         // Add to array
         roundsArray[i] = round;
         pointsArray[i] = points;
-        println("Points: " + points + " , Round: " + round);
       }
-      
-        driverPointsLineChart = new XYChart(this);
-        driverPointsLineChart.setData(roundsArray, pointsArray);
-         
-        // Axis formatting and labels.
-        driverPointsLineChart.showXAxis(true); 
-        driverPointsLineChart.showYAxis(true); 
-           
-        // Symbol colours
-        driverPointsLineChart.setPointColour(color(255));
-        driverPointsLineChart.setPointSize(3);
-        driverPointsLineChart.setLineWidth(2);
-      
-       driverPointsLineChart.draw(15,500,500,400);
-   
+
+      driverPointsLineChart = new XYChart(this);
+      driverPointsLineChart.setData(roundsArray, pointsArray);
+
+      // Axis formatting and labels.
+      driverPointsLineChart.showXAxis(true); 
+      driverPointsLineChart.showYAxis(true); 
+
+      // Symbol colours
+      driverPointsLineChart.setPointColour(color(255));
+      driverPointsLineChart.setPointSize(3);
+      driverPointsLineChart.setLineWidth(2);
+
+      driverPointsLineChart.draw(15, 500, 500, 400);
+
       // Draw a title over the top of the chart.
       fill(255);
       textSize(10);
@@ -1189,39 +1188,53 @@ void page7() {
 }
 
 // General Pitstops
+int maxDistance = canvasWidth - 200;
 void page8() {
   if (!dataLoaded) {
     background(255);
     // Default round is the first
-    String round = "1";
-    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + round + "/pitstops.json").getJSONObject("MRData"); //TODO change year
+    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + selectedRound + "/pitstops.json").getJSONObject("MRData"); //TODO change year
     JSONArray pitstopsJSON = ((JSONObject) data.getJSONObject("RaceTable").getJSONArray("Races").get(0)).getJSONArray("PitStops");
     // Driver details
     JSONArray driversJSON = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData").getJSONObject("DriverTable").getJSONArray("Drivers"); 
 
     // driverID key and name as value
-    Map<String, String> driverNamesMap = new HashMap<String, String>();
+    Map<String, JSONObject> driversMap = new HashMap<String, JSONObject>();
 
     // Find the name of the driver
     for (int j = 0; j < driversJSON.size(); j++) {
       JSONObject driverJSON = (JSONObject) driversJSON.get(j); 
-      driverNamesMap.put(driverJSON.getString("driverId"), driverJSON.getString("familyName"));
+      driversMap.put(driverJSON.getString("driverId"), driverJSON);
     }
 
 
     float[] durations = new float[pitstopsJSON.size()];
-    String[] driverNames = new String[pitstopsJSON.size()];
     float maxValue = 0, minValue = 0;
-    DriverPitStops[] driverPitStops = new DriverPitStops[pitstopsJSON.size()];
+    driverCircles = new ArrayList<DriverCircle>();
     for (int i = 0; i < pitstopsJSON.size(); i++) {
       JSONObject pitstopJSON = (JSONObject) pitstopsJSON.get(i);
       String driverID = pitstopJSON.getString("driverId");
       String lap = pitstopJSON.getString("lap");
       String time = pitstopJSON.getString("time");
-      durations[i] = pitstopJSON.getFloat("duration");
-
+      float duration = pitstopJSON.getFloat("duration");
       // Get driver name
-      driverNames[i] = driverNamesMap.get(driverID);
+      String driverName = driversMap.get(driverID).getString("familyName");
+      String driverCode = driversMap.get(driverID).getString("code");
+
+      for (int j = 0; j < pitstopsJSON.size(); j++) {
+        JSONObject currentPitstop = (JSONObject) pitstopsJSON.get(j);
+
+        if (driverID.equals(currentPitstop.getString("driverId"))  && i != j) {
+          duration += currentPitstop.getFloat("duration");
+          pitstopsJSON.remove(j);
+        }
+      }
+
+      int posY = 75 + 800/pitstopsJSON.size() * i;
+
+      DriverCircle driverCircle = new DriverCircle(driverID, driverName, driverCode, lap, time, duration, 0, posY);
+
+      driverCircles.add(driverCircle);
 
 
       if (durations[i] > maxValue) maxValue = durations[i];
@@ -1230,39 +1243,140 @@ void page8() {
 
 
       minValue = durations[i];
-
-      driverPitStops[i] = new DriverPitStops(driverNames[i], durations[i]);
     }
-
-    Arrays.sort(driverPitStops);
     
-    for (int i = 0; i < driverPitStops.length; i++) {
-      driverNames[i] = driverPitStops[i].driverName;
-      durations[i] = driverPitStops[i].duration;
+     // Show Circuits on bottom
+     circuitBar();
+
+      dataLoaded = true;
+  }
+  // Background
+  background(255);
+  tint(255, 230);
+  image(pitStopImg, 0, 0);
+  textSize(18);
+  
+  stroke(0);
+  // Draw teams on the right
+  // Show the legend on the right
+  // Light blue
+  fill(0, 210, 190);
+  rect(1450, 200, 20, 20);
+  text("Mercedes", 1500, 215);
+  // Red
+  fill(220, 0, 0);
+  rect(1450, 250, 20, 20);
+  text("Ferrari", 1500, 265);
+  // White and Red
+  fill(155, 0, 0);
+  rect(1450, 300, 20, 20);
+  text("Sauber", 1500, 315);
+  // Blue
+  fill(0, 50, 255);
+  rect(1450, 350, 20, 20);
+  text("Toro Rosso", 1500, 365);
+  // Grey
+  fill(90, 90, 90);
+  rect(1450, 400, 20, 20);
+  text("Haas", 1500, 415);
+  // Yellow
+  fill(255, 245, 0);
+  rect(1450, 450, 20, 20);
+  text("Renault", 1500, 465);
+  // Purple
+  fill(0, 50, 125);
+  rect(1450, 500, 20, 20);
+  text("Red Bull", 1500, 515);
+  // Pink
+  fill(245, 150, 200);
+  rect(1450, 550, 20, 20);
+  text("Force India", 1500, 565);
+  // White and Blue
+  fill(255, 255, 255);
+  rect(1450, 600, 20, 20);
+  text("Williams", 1500, 615);
+  // Light blue
+  fill(0, 210, 190);
+
+  // For each driver
+  int circleSize = 35;
+  float best = Integer.MAX_VALUE, worst = 0;
+  String teamBest = "", teamWorst = "";
+  for (DriverCircle driverCircle : driverCircles) {
+    stroke(0);
+    // Depending on the driver, change it's color
+    if (driverCircle.driverID.equals("alonso") || driverCircle.driverID.equals("vandoorne")) {
+      // Orange
+      fill(255, 135, 0);
+    } else if (driverCircle.driverID.equals("bottas") || driverCircle.driverID.equals("hamilton")) {
+      // Light blue
+      fill(0, 210, 190);
+    } else if (driverCircle.driverID.equals("vettel") || driverCircle.driverID.equals("raikkonen")) {
+      // Red
+      fill(220, 0, 0);
+    } else if (driverCircle.driverID.equals("ericsson") || driverCircle.driverID.equals("leclerc")) {
+      // White and Red
+      fill(155, 0, 0);
+    } else if (driverCircle.driverID.equals("gasly") || driverCircle.driverID.equals("brendon_hartley")) {
+      // Blue
+      fill(0, 50, 255);
+    } else if (driverCircle.driverID.equals("grosjean") || driverCircle.driverID.equals("kevin_magnussen")) {
+      // Grey
+      fill(90, 90, 90);
+    } else if (driverCircle.driverID.equals("hulkenberg") || driverCircle.driverID.equals("sainz")) {
+      // Yellow
+      fill(255, 245, 0);
+    } else if (driverCircle.driverID.equals("ricciardo") || driverCircle.driverID.equals("max_verstappen")) {
+      // Purple
+      fill(0, 50, 125);
+    } else if (driverCircle.driverID.equals("ocon") || driverCircle.driverID.equals("perez")) {
+      // Pink
+      fill(245, 150, 200);
+    } else if (driverCircle.driverID.equals("sirotkin") || driverCircle.driverID.equals("stroll")) {
+      // White and Blue
+      fill(255, 255, 255);
     }
 
+    // Draw a circle for each driver
+    ellipse(driverCircle.posX, driverCircle.posY, circleSize, circleSize);
+    text(driverCircle.driverCode, driverCircle.posX - 60, driverCircle.posY);
 
-    pitStopBarChart = new BarChart(this);
-    pitStopBarChart.setData(durations);
+    // Make animation between 0 and time lost in pitstops
+    driverCircle.posX += 90/driverCircle.duration;
 
-    // Scaling
-    pitStopBarChart.setMinValue(minValue - 1);
-    pitStopBarChart.setMaxValue(maxValue);
+    // If the user hovers, show details about the pitstop
+    float dist = dist(mouseX, mouseY, driverCircle.posX, driverCircle.posY);
 
-    // Axis appearance
-    textFont(createFont("Serif Bold", 10), 10);
+    // Mouse inside circle
+    if (dist < circleSize/2) {
+      line(driverCircle.posX, driverCircle.posY, driverCircle.posX - 100, driverCircle.posY - 20);
+      stroke(255);
+      fill(255);
+      textSize(25);
+      text(driverCircle.duration + "s", driverCircle.posX - 170, driverCircle.posY - 20);
+      textSize(18);
+    }
 
-    pitStopBarChart.showValueAxis(true);
-    pitStopBarChart.setBarLabels(driverNames);
-    pitStopBarChart.showCategoryAxis(true);
-    pitStopBarChart.setBarColour(durations, ColourTable.getPresetColourTable(ColourTable.BLUES, minValue, maxValue));
-
-    seasonSlider();
-
-    dataLoaded = true;
+    // If the ellipse ends
+    if (driverCircle.posX > maxDistance) {
+      driverCircle.posX = maxDistance;
+    }
+    
+    if(worst < driverCircle.duration) {
+      worst = driverCircle.duration;
+      teamWorst = driverCircle.driverName;
+    }
+    if(best > driverCircle.duration) {
+      best = driverCircle.duration;
+      teamBest = driverCircle.driverName;
+    }
   }
-
-  pitStopBarChart.draw(20, 20, width-40, height-40);
+    // Best and Worst
+    textSize(22);
+    fill(0,255,0);
+    text("Best: " + best + " (" + teamBest + ")", 1000, 50);
+    fill(255,0,0);
+    text("Worst: " + worst + " (" + teamWorst + ")", 1300, 50);
 }
 
 void loadCircuitPointOnMap() {
@@ -1278,6 +1392,44 @@ void loadCircuitPointOnMap() {
   }
 }
 
+void circuitBar() {
+  
+  if(cp5.get("barCircuit") == null) {
+     ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
+      
+     circuitBar = cp5.addButtonBar("barCircuit")
+        .setPosition(0, canvasHeight - 30)
+        .setSize(canvasWidth, 30)
+        .setColorBackground(0)
+        .setColorActive(red)
+        .setColorForeground(lighterRed)
+        .addItems(circuitNames);
+  }
+}
+
+// Call back event of menu bar
+void barCircuit(int circuitIndex) {
+  println(circuitIndex);
+  ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
+  println(circuitNames.get(circuitIndex));
+  
+  // Get Round from API
+  JSONObject data = loadJSONObject(apiURL + selectedSeason + "/races.json").getJSONObject("MRData"); //TODO change year
+  JSONArray racesJSON = data.getJSONObject("RaceTable").getJSONArray("Races");
+  
+  for(int i = 0; i < racesJSON.size(); i++) {
+    JSONObject raceJSON = (JSONObject) racesJSON.get(i);
+    if(raceJSON.getJSONObject("Circuit").getString("circuitId").equals(circuitNames.get(circuitIndex))) {
+      selectedRound = raceJSON.getString("round");
+      
+      println(selectedRound);
+      
+      // Reload data
+      dataLoaded = false;
+    }
+  }
+}
+
 class Status implements Comparable<Status> {
   String  status;
   float count;
@@ -1289,7 +1441,7 @@ class Status implements Comparable<Status> {
 
   @Override
     public int compareTo(Status s) {  
-    if(s != null) {
+    if (s != null) {
       if (this.count > s.count) {
         return 1;
       } else if (this.count < s.count) {

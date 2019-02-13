@@ -56,8 +56,12 @@ private JSONArray constructorsJSON;
 private HashMap<String, JSONObject> circuitsMap = new HashMap<String, JSONObject>();
 private HashMap<String, JSONObject> racesMap = new HashMap<String, JSONObject>();
 
+// Years for constructors, etc..
+private String[] years = new String[] {"2015", "2016", "2017", "2018"};
+
 private ButtonBar buttonBar;
 private ButtonBar circuitBar;
+private ButtonBar constructorBar;
 
 private int currentPage = 0;
 
@@ -68,6 +72,7 @@ private PImage f1Background2;
 private PImage f1Img1, f1Img2, f1Img3, f1Img4, f1Img5, f1Img6;
 private PImage pitStopImg;
 private PImage ipcaLogo;
+private PImage f1LogoBig;
 
 // Default settings
 private final int canvasWidth = 1600;
@@ -303,7 +308,9 @@ void setup() {
   f1Img6 = loadImage("img/common/f1-pitstops-background.jpg");
   pitStopImg = loadImage("img/common/pitstop.jpg");
   pitStopImg.resize(canvasWidth, canvasHeight);
-
+  f1LogoBig = loadImage("img/common/f1-logo-big.jpg");
+  f1LogoBig.resize(canvasWidth, canvasHeight);
+  
   // Fonts
   font1 = createFont("Arial", 40);
   font2 = createFont("Arial Bold", 42);
@@ -375,8 +382,7 @@ void page0() {
   if (cp5.get("race") != null) cp5.get("race").hide();
   // Load Images
   // Background
-  f1Background.resize(canvasWidth, canvasHeight);
-  image(f1Background, 0, 0);
+  image(f1LogoBig, 0, 0);
   // F1 Logo
   f1Logo.resize(213, 54);
   image(f1Logo, canvasWidth - 233, canvasHeight - 74);
@@ -400,7 +406,7 @@ void page0() {
 }
 
 void seasonSlider() { 
-  if(cp5.get("season") != null) {
+  if (cp5.get("season") != null) {
     cp5.addSlider("season")
       .setPosition(canvasWidth/2 - 250, canvasHeight - 15)
       .setColorBackground(color(255, 0, 0))
@@ -411,11 +417,12 @@ void seasonSlider() {
       .setValue(2015)
       .setNumberOfTickMarks(4)
       .setSliderMode(Slider.FLEXIBLE);
-    }
+  }
 }
 
 void page99() {
 
+  noTint();
   image(f1Img1, 0, 0, canvasWidth, canvasHeight);
 
   // Hide controls
@@ -805,53 +812,23 @@ void page3() {
   image(driverImage, 30, 150);
 }
 
+void barConstructors(int index) {
+  season = years[index];
+  println(season);
+  dataLoaded = false;
+}
+
 // Constructors
+private String season = "2018";
 void page4() {
+  background(38);
 
   if (!dataLoaded) {
-    background(255);
-
-    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/constructors.json").getJSONObject("MRData"); //TODO change year
+    JSONObject data = loadJSONObject(apiURL + season + "/constructors.json").getJSONObject("MRData"); //TODO change year
     constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
 
-    int incr1 = 1, incr2 = 1;
-    for (int i = 0; i < constructorsJSON.size(); i++) {
-      JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
-      String constructorID = constructorJSON.getString("constructorId");
-      PImage constructorImage = constructorImages.get(constructorID);
-
-      constructorImage.resize(50, 50);
-
-      // List constructors
-      if (i < constructorsJSON.size() / 2) {
-        image(constructorImage, incr1 * 100, canvasHeight * .33);
-        incr1++;
-
-        // When user hovers the constructor image
-        if (mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
-          // If user clicks on the image
-          if (mousePressed) {
-            selectedConstructor = constructorJSON;
-            currentPage = 5;
-          }
-        }
-      } else if (i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
-        image(constructorImage, incr2 * 100, canvasHeight * .66);
-        incr2++;
-
-        // When user hovers the constructor image
-        if (mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
-          // If user clicks on the image
-          if (mousePressed) {
-            selectedConstructor = constructorJSON;
-            currentPage = 5;
-          }
-        }
-      }
-    }
-
     // Constructor standings for this year
-    data = loadJSONObject(apiURL + selectedSeason + "/constructorStandings.json").getJSONObject("MRData"); //TODO change year
+    data = loadJSONObject(apiURL + season + "/constructorStandings.json").getJSONObject("MRData"); //TODO change year
     constructorsStandingsJSON = ((JSONObject)(data.getJSONObject("StandingsTable").getJSONArray("StandingsLists")).get(0)).getJSONArray("ConstructorStandings");
 
     String[] wins = new String[constructorsStandingsJSON.size()];
@@ -897,36 +874,58 @@ void page4() {
     constructorsChart.showValueAxis(true);
     constructorsChart.setBarLabels(constructors);
     constructorsChart.showCategoryAxis(true);
-    constructorsChart.setBarColour(pointsData, ColourTable.getPresetColourTable(ColourTable.REDS, - maxValue, maxValue));
+    constructorsChart.setAxisLabelColour(255);
+    constructorsChart.setAxisValuesColour(255);
+    constructorsChart.setShowEdge(true);
+    constructorsChart.setValueFormat("# Points");
+
+    // Change Table color
+    int c;
+    switch(season) {
+    case "2015":
+      c = ColourTable.RD_PU;
+      break;
+    case "2016":
+      c = ColourTable.GREENS;
+      break;
+    case "2017":
+      c = ColourTable.BLUES;
+      break;
+    case "2018":
+      c = ColourTable.YL_OR_RD;
+      break;
+    default:
+      c = ColourTable.YL_OR_RD;
+      break;
+    }
+    
+    constructorsChart.setBarColour(pointsData, ColourTable.getPresetColourTable(c, - maxValue, maxValue));
+
+    if (cp5.get("barConstructors") == null) {
+      constructorBar = cp5.addButtonBar("barConstructors")
+        .setPosition(0, canvasHeight - 30)
+        .setSize(canvasWidth, 30)
+        .setColorBackground(0)
+        .setColorActive(red)
+        .setColorForeground(lighterRed)
+        .addItems(years);
+    }
 
     dataLoaded = true;
   }
-  for (int i = 0; i < constructorsJSON.size(); i++) { 
-    JSONObject constructorJSON = (JSONObject) constructorsJSON.get(i);
-    // List constructors
-    if (i < constructorsJSON.size() / 2) {    
-      // When user hovers the constructor image
-      if (mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .33 - 50 && mouseY < canvasHeight * .33 +50) {
-        // If user clicks on the image
-        if (mousePressed) {
-          selectedConstructor = constructorJSON;
-          currentPage = 5;
-        }
-      }
-    } else if (i >= constructorsJSON.size() / 2 && i < constructorsJSON.size()) {
-      // When user hovers the constructor image
-      if (mouseX < i * 100 + 50 && mouseX > i * 100 -50 && mouseY > canvasHeight * .66 - 50 && mouseY < canvasHeight * .66 +50) {
-        // If user clicks on the image
-        if (mousePressed) {
-          selectedConstructor = constructorJSON;
-          currentPage = 5;
-        }
-      }
-    }
-  }
+  
+  stroke(127);
   // draw constructor standings graph
-  constructorsChart.draw(20, 20, width-40, height-40);
+  constructorsChart.draw(20, 80, width-40, height-140);
+
+  fill(255);
+  textFont(titleFont);
+  text("Formula 1 Constructors Ranking", 100, 100);
+  float textHeight = textAscent();
+  textFont(smallFont);
+  text("Season " + season, 100, 100 + textHeight);
 }
+
 
 // Constructor Details
 void page5() {
@@ -1244,18 +1243,18 @@ void page8() {
 
       minValue = durations[i];
     }
-    
-     // Show Circuits on bottom
-     circuitBar();
 
-      dataLoaded = true;
+    // Show Circuits on bottom
+    circuitBar();
+
+    dataLoaded = true;
   }
   // Background
   background(255);
   tint(255, 230);
   image(pitStopImg, 0, 0);
   textSize(18);
-  
+
   stroke(0);
   // Draw teams on the right
   // Show the legend on the right
@@ -1361,22 +1360,22 @@ void page8() {
     if (driverCircle.posX > maxDistance) {
       driverCircle.posX = maxDistance;
     }
-    
-    if(worst < driverCircle.duration) {
+
+    if (worst < driverCircle.duration) {
       worst = driverCircle.duration;
       teamWorst = driverCircle.driverName;
     }
-    if(best > driverCircle.duration) {
+    if (best > driverCircle.duration) {
       best = driverCircle.duration;
       teamBest = driverCircle.driverName;
     }
   }
-    // Best and Worst
-    textSize(22);
-    fill(0,255,0);
-    text("Best: " + best + " (" + teamBest + ")", 1000, 50);
-    fill(255,0,0);
-    text("Worst: " + worst + " (" + teamWorst + ")", 1300, 50);
+  // Best and Worst
+  textSize(22);
+  fill(0, 255, 0);
+  text("Best: " + best + " (" + teamBest + ")", 1000, 50);
+  fill(255, 0, 0);
+  text("Worst: " + worst + " (" + teamWorst + ")", 1300, 50);
 }
 
 void loadCircuitPointOnMap() {
@@ -1393,17 +1392,17 @@ void loadCircuitPointOnMap() {
 }
 
 void circuitBar() {
-  
-  if(cp5.get("barCircuit") == null) {
-     ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
-      
-     circuitBar = cp5.addButtonBar("barCircuit")
-        .setPosition(0, canvasHeight - 30)
-        .setSize(canvasWidth, 30)
-        .setColorBackground(0)
-        .setColorActive(red)
-        .setColorForeground(lighterRed)
-        .addItems(circuitNames);
+
+  if (cp5.get("barCircuit") == null) {
+    ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
+
+    circuitBar = cp5.addButtonBar("barCircuit")
+      .setPosition(0, canvasHeight - 30)
+      .setSize(canvasWidth, 30)
+      .setColorBackground(0)
+      .setColorActive(red)
+      .setColorForeground(lighterRed)
+      .addItems(circuitNames);
   }
 }
 
@@ -1412,18 +1411,18 @@ void barCircuit(int circuitIndex) {
   println(circuitIndex);
   ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
   println(circuitNames.get(circuitIndex));
-  
+
   // Get Round from API
   JSONObject data = loadJSONObject(apiURL + selectedSeason + "/races.json").getJSONObject("MRData"); //TODO change year
   JSONArray racesJSON = data.getJSONObject("RaceTable").getJSONArray("Races");
-  
-  for(int i = 0; i < racesJSON.size(); i++) {
+
+  for (int i = 0; i < racesJSON.size(); i++) {
     JSONObject raceJSON = (JSONObject) racesJSON.get(i);
-    if(raceJSON.getJSONObject("Circuit").getString("circuitId").equals(circuitNames.get(circuitIndex))) {
+    if (raceJSON.getJSONObject("Circuit").getString("circuitId").equals(circuitNames.get(circuitIndex))) {
       selectedRound = raceJSON.getString("round");
-      
+
       println(selectedRound);
-      
+
       // Reload data
       dataLoaded = false;
     }

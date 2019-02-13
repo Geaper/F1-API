@@ -1078,110 +1078,139 @@ void page6() {
   }
 }
 
+
+Map<String, Boolean> activatedDriversMap = new HashMap<String, Boolean>();
+Map<String, ArrayList<Integer>> pointsPerRaceMap = new HashMap<String, ArrayList<Integer>>();
+boolean driverResultsLoaded = false;
+String selectedDriv = "alonso";
 // Drivers
 void page7() {
+
   background(38, 24, 34);
   if (!dataLoaded) {
     JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
+     for (int i=0; i < driversJSON.size(); i++) {
+       JSONObject driverJSON = (JSONObject) driversJSON.get(i);
+       String driverID = driverJSON.getString("driverId");
+       if(driverID.equals("alonso")) activatedDriversMap.put(driverID, true);
+       else activatedDriversMap.put(driverID, false);
+     }
 
     dataLoaded = true;
   }
+  
+  if(!driverResultsLoaded) {
+    JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+       ArrayList<Integer> pointsPerRaceList = new ArrayList<Integer>();
+       // for each race
+       for(int j = 0; j < dataRaces.size(); j++) {
+         JSONArray results = ((JSONObject) dataRaces.get(j)).getJSONArray("Results");
+         JSONObject result = (JSONObject) results.get(0);
+         String dID = result.getJSONObject("Driver").getString("driverId");
+         int points = Integer.parseInt(result.getString("points"));
+          pointsPerRaceList.add(points);
+          
+          pointsPerRaceMap.put(dID, pointsPerRaceList);
+          
+          driverResultsLoaded = true;
+       } 
+  }
 
   // For each one of them show details on the bottom and enable to user to click them to see the details
+  textSize(25);
+  int posY = 40;
+  int posX = 1500;
   for (int i=0; i < driversJSON.size(); i++) {
     JSONObject driverJSON = (JSONObject) driversJSON.get(i);
     String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
     String driverID = driverJSON.getString("driverId");
     PImage driverImage = driverImages.get(driverID);
+    String driverCode = driverJSON.getString("code");
 
-    driverImage.resize(150, 190);
-    // Makes rows of driver images
-    int imgPosX = 0, imgPosY = 0;
-    if (i < 5) {
-      imgPosX = i * 150 + 800;
-      imgPosY = 90;
-    } else if (i >= 5 && i < 10) {  
-      imgPosX = (i-5) * 150 + 800;
-      imgPosY = 280;
-    } else if (i >= 10 && i < 15) {
-      imgPosX = (i-10) * 150 + 800;
-      imgPosY = 470;
-    } else {
-      imgPosX = (i-15) * 150 + 800;
-      imgPosY = 660;
+    posY += 40;
+    if(!activatedDriversMap.get(driverID)) {
+      fill(255);
     }
-
-    image(driverImage, imgPosX, imgPosY);
-
-
-    // If hover
-    if (mouseX < imgPosX + 150 && mouseX > imgPosX && mouseY > imgPosY && mouseY < imgPosY + 190) {
-      // On hover show details
-      String driverCode = driverJSON.getString("code");
-      String dateOfBirth = driverJSON.getString("dateOfBirth");
-      String nationality = driverJSON.getString("nationality");
-      String number = driverJSON.getString("permanentNumber");
-
-      PImage flagImage = flagImages.get(nationality);
-      flagImage.resize(75, 50);
-      image(flagImage, 35, 500);
-
-      PImage driverImage2 = driverImage.copy();
-      driverImage2.resize(300, 400);
-      image(driverImage2, 30, 90);
-
-      // Details
-      fill(255);
-      textSize(32);
-      text(driverName, 350, 110);
-      text(driverCode, 350, 160);
-      text(dateOfBirth, 350, 200);
-      if (number != null) {
-        textSize(90);
-        text(number, 350, 450);
+    else {
+      if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
+        // Orange
+        fill(255, 135, 0);
+      } else if (driverID.equals("bottas") || driverID.equals("hamilton")) {
+        // Light blue
+        fill(0, 210, 190);
+      } else if (driverID.equals("vettel") || driverID.equals("raikkonen")) {
+        // Red
+        fill(220, 0, 0);
+      } else if (driverID.equals("ericsson") || driverID.equals("leclerc")) {
+        // White and Red
+        fill(155, 0, 0);
+      } else if (driverID.equals("gasly") || driverID.equals("brendon_hartley")) {
+        // Blue
+        fill(0, 50, 255);
+      } else if (driverID.equals("grosjean") || driverID.equals("kevin_magnussen")) {
+        // Grey
+        fill(90, 90, 90);
+      } else if (driverID.equals("hulkenberg") || driverID.equals("sainz")) {
+        // Yellow
+        fill(255, 245, 0);
+      } else if (driverID.equals("ricciardo") || driverID.equals("max_verstappen")) {
+        // Purple
+        fill(0, 50, 125);
+      } else if (driverID.equals("ocon") || driverID.equals("perez")) {
+        // Pink
+        fill(245, 150, 200);
+      } else if (driverID.equals("sirotkin") || driverID.equals("stroll")) {
+        // White and Blue
+        fill(255, 255, 255);
       }
+    }
+    text(driverCode, 1500, posY);
 
-      // Graph showing the points obtained by this driver for the season
-      JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + driverID + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
-      // For each race, get the driver points
-      float[] pointsArray = new float[dataRaces.size()];
-      float[] roundsArray = new float[dataRaces.size()];
-      for (int j = 0; j < dataRaces.size(); j++) {
-        JSONObject raceJSON = (JSONObject) dataRaces.get(j);
-        float round = Float.parseFloat(raceJSON.getString("round"));
-        float points = Float.parseFloat(((JSONObject) raceJSON.getJSONArray("Results").get(0)).getString("points"));
-        // Add to array
-        roundsArray[i] = round;
-        pointsArray[i] = points;
-      }
-
-      driverPointsLineChart = new XYChart(this);
-      driverPointsLineChart.setData(roundsArray, pointsArray);
-
-      // Axis formatting and labels.
-      driverPointsLineChart.showXAxis(true); 
-      driverPointsLineChart.showYAxis(true); 
-
-      // Symbol colours
-      driverPointsLineChart.setPointColour(color(255));
-      driverPointsLineChart.setPointSize(3);
-      driverPointsLineChart.setLineWidth(2);
-
-      driverPointsLineChart.draw(15, 500, 500, 400);
-
-      // Draw a title over the top of the chart.
-      fill(255);
-      textSize(10);
-      //text("Income per person, United Kingdom", 25,30);
-      textSize(11);
-      //text("Gross domestic product measured in inflation-corrected $US", 70,45);
-
-      // If users clicks it, redirect to the driver details
-      if (mousePressed) {
-        selectedDriver = driverJSON;
-        currentPage = 3;
-      }
+     // If hover
+    if (mouseX < posX + 100 && mouseX > posX && mouseY > posY - 25 && mouseY < posY) {
+      
+      
+    if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
+      // Orange
+      fill(255, 135, 0);
+    } else if (driverID.equals("bottas") || driverID.equals("hamilton")) {
+      // Light blue
+      fill(0, 210, 190);
+    } else if (driverID.equals("vettel") || driverID.equals("raikkonen")) {
+      // Red
+      fill(220, 0, 0);
+    } else if (driverID.equals("ericsson") || driverID.equals("leclerc")) {
+      // White and Red
+      fill(155, 0, 0);
+    } else if (driverID.equals("gasly") || driverID.equals("brendon_hartley")) {
+      // Blue
+      fill(0, 50, 255);
+    } else if (driverID.equals("grosjean") || driverID.equals("kevin_magnussen")) {
+      // Grey
+      fill(90, 90, 90);
+    } else if (driverID.equals("hulkenberg") || driverID.equals("sainz")) {
+      // Yellow
+      fill(255, 245, 0);
+    } else if (driverID.equals("ricciardo") || driverID.equals("max_verstappen")) {
+      // Purple
+      fill(0, 50, 125);
+    } else if (driverID.equals("ocon") || driverID.equals("perez")) {
+      // Pink
+      fill(245, 150, 200);
+    } else if (driverID.equals("sirotkin") || driverID.equals("stroll")) {
+      // White and Blue
+      fill(255, 255, 255);
+    }
+    text(driverCode, 1500, posY);
+    
+    println(pointsPerRaceMap.size());
+    
+     if(mousePressed) {
+       activatedDriversMap.put(driverID, true);
+       driverResultsLoaded = false;
+       selectedDriv = driverID;
+     }
     }
   }
 }

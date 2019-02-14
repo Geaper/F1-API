@@ -30,7 +30,7 @@ private ControlP5 cp5;
 private GPlot plot;
 private BarChart pitStopBarChart;
 private BarChart constructorsChart;
-private XYChart driverPointsLineChart;
+private XYChart[] driverPointsLineChart;
 private ArrayList<DriverCircle> driverCircles;
 
 private MapPosition currentHoveringMapPos = new MapPosition(0, 0);
@@ -310,7 +310,7 @@ void setup() {
   pitStopImg.resize(canvasWidth, canvasHeight);
   f1LogoBig = loadImage("img/common/f1-logo-big.jpg");
   f1LogoBig.resize(canvasWidth, canvasHeight);
-  
+
   // Fonts
   font1 = createFont("Arial", 40);
   font2 = createFont("Arial Bold", 42);
@@ -812,10 +812,22 @@ void page3() {
   image(driverImage, 30, 150);
 }
 
-void barConstructors(int index) {
+void barSeason(int index) {
   season = years[index];
   println(season);
   dataLoaded = false;
+}
+
+void seasonBar() {
+  if (cp5.get("barSeason") == null) {
+    constructorBar = cp5.addButtonBar("barSeason")
+      .setPosition(0, canvasHeight - 30)
+      .setSize(canvasWidth, 30)
+      .setColorBackground(0)
+      .setColorActive(red)
+      .setColorForeground(lighterRed)
+      .addItems(years);
+  }
 }
 
 // Constructors
@@ -898,22 +910,14 @@ void page4() {
       c = ColourTable.YL_OR_RD;
       break;
     }
-    
+
     constructorsChart.setBarColour(pointsData, ColourTable.getPresetColourTable(c, - maxValue, maxValue));
 
-    if (cp5.get("barConstructors") == null) {
-      constructorBar = cp5.addButtonBar("barConstructors")
-        .setPosition(0, canvasHeight - 30)
-        .setSize(canvasWidth, 30)
-        .setColorBackground(0)
-        .setColorActive(red)
-        .setColorForeground(lighterRed)
-        .addItems(years);
-    }
+    seasonBar();
 
     dataLoaded = true;
   }
-  
+
   stroke(127);
   // draw constructor standings graph
   constructorsChart.draw(20, 80, width-40, height-140);
@@ -1080,47 +1084,55 @@ void page6() {
 
 
 Map<String, Boolean> activatedDriversMap = new HashMap<String, Boolean>();
-Map<String, ArrayList<Integer>> pointsPerRaceMap = new HashMap<String, ArrayList<Integer>>();
+Map<String, float[]> pointsPerRaceMap = new HashMap<String, float[]>();
+Map<String, XYChart> charts = new HashMap<String, XYChart>();
 boolean driverResultsLoaded = false;
 String selectedDriv = "alonso";
+boolean doOnce = false;
+boolean axisShown = false;
 // Drivers
 void page7() {
 
-  background(38, 24, 34);
+   background(38);
   if (!dataLoaded) {
-    JSONObject data = loadJSONObject(apiURL + selectedSeason + "/drivers.json").getJSONObject("MRData"); //TODO change year
+    seasonBar();
+    driverPointsLineChart = new XYChart[20];
+    JSONObject data = loadJSONObject(apiURL + season + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
-     for (int i=0; i < driversJSON.size(); i++) {
-       JSONObject driverJSON = (JSONObject) driversJSON.get(i);
-       String driverID = driverJSON.getString("driverId");
-       if(driverID.equals("alonso")) activatedDriversMap.put(driverID, true);
-       else activatedDriversMap.put(driverID, false);
-     }
+    for (int i=0; i < driversJSON.size(); i++) {
+      JSONObject driverJSON = (JSONObject) driversJSON.get(i);
+      String driverID = driverJSON.getString("driverId");
+      if (driverID.equals("alonso")) activatedDriversMap.put(driverID, true);
+      else activatedDriversMap.put(driverID, false);
+
+      charts.put(driverID, new XYChart(this));
+    }
+    
+    JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+    float[] pointsPerRaceList = new float[dataRaces.size()];   
+    float[] roundsArray = new float[dataRaces.size()];
+    // for each race
+    for (int j = 0; j < dataRaces.size(); j++) {
+      JSONObject dataRace = (JSONObject) dataRaces.get(j);
+      JSONArray results = dataRace.getJSONArray("Results");
+      JSONObject result = (JSONObject) results.get(0);
+      String dID = result.getJSONObject("Driver").getString("driverId");
+      float points = Float.parseFloat(result.getString("points"));
+      pointsPerRaceList[j] = points;
+      pointsPerRaceMap.put(dID, pointsPerRaceList);
+      roundsArray[j] = Float.parseFloat(dataRace.getString("round"));
+    }
 
     dataLoaded = true;
   }
-  
-  if(!driverResultsLoaded) {
-    JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
-       ArrayList<Integer> pointsPerRaceList = new ArrayList<Integer>();
-       // for each race
-       for(int j = 0; j < dataRaces.size(); j++) {
-         JSONArray results = ((JSONObject) dataRaces.get(j)).getJSONArray("Results");
-         JSONObject result = (JSONObject) results.get(0);
-         String dID = result.getJSONObject("Driver").getString("driverId");
-         int points = Integer.parseInt(result.getString("points"));
-          pointsPerRaceList.add(points);
-          
-          pointsPerRaceMap.put(dID, pointsPerRaceList);
-          
-          driverResultsLoaded = true;
-       } 
-  }
+
+  fill(255);
 
   // For each one of them show details on the bottom and enable to user to click them to see the details
-  textSize(25);
-  int posY = 40;
+  textSize(21);
+  int posY = 15;
   int posX = 1500;
+  int[] colors = new int[driversJSON.size()];
   for (int i=0; i < driversJSON.size(); i++) {
     JSONObject driverJSON = (JSONObject) driversJSON.get(i);
     String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
@@ -1128,11 +1140,59 @@ void page7() {
     PImage driverImage = driverImages.get(driverID);
     String driverCode = driverJSON.getString("code");
 
-    posY += 40;
-    if(!activatedDriversMap.get(driverID)) {
+    posY += 35;
+    if (!activatedDriversMap.get(driverID)) {
       fill(255);
+    } else {
+      if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
+        // Orange
+        fill(255, 135, 0);
+        colors[i] = color(255, 135, 0);
+      } else if (driverID.equals("bottas") || driverID.equals("hamilton")) {
+        // Light blue
+        fill(0, 210, 190);
+        colors[i] = color(0, 210, 190);
+      } else if (driverID.equals("vettel") || driverID.equals("raikkonen")) {
+        // Red
+        fill(220, 0, 0);
+        colors[i] = color(220, 0, 0);
+      } else if (driverID.equals("ericsson") || driverID.equals("leclerc")) {
+        // White and Red
+        fill(155, 0, 0);
+        colors[i] = color(155, 0, 0);
+      } else if (driverID.equals("gasly") || driverID.equals("brendon_hartley")) {
+        // Blue
+        fill(0, 50, 255);
+        colors[i] = color(0, 50, 255);
+      } else if (driverID.equals("grosjean") || driverID.equals("kevin_magnussen")) {
+        // Grey
+        fill(90, 90, 90);
+        colors[i] = color(90, 90, 90);
+      } else if (driverID.equals("hulkenberg") || driverID.equals("sainz")) {
+        // Yellow
+        fill(255, 245, 0);
+        colors[i] = color(255, 245, 0);
+      } else if (driverID.equals("ricciardo") || driverID.equals("max_verstappen")) {
+        // Purple
+        fill(0, 50, 125);
+        colors[i] = color(0, 50, 125);
+      } else if (driverID.equals("ocon") || driverID.equals("perez")) {
+        // Pink
+        fill(245, 150, 200);
+        colors[i] = color(245, 150, 200);
+      } else if (driverID.equals("sirotkin") || driverID.equals("stroll")) {
+        // White and Blue
+        fill(255, 255, 255);
+        colors[i] = color(255, 255, 255);
+      }
     }
-    else {
+    
+    text(driverCode, 1500, posY);
+
+    // If hover
+    if (mouseX < posX + 100 && mouseX > posX && mouseY > posY - 21 && mouseY < posY) {
+
+
       if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
         // Orange
         fill(255, 135, 0);
@@ -1164,56 +1224,122 @@ void page7() {
         // White and Blue
         fill(255, 255, 255);
       }
-    }
-    text(driverCode, 1500, posY);
+      text(driverCode, 1500, posY);
 
-     // If hover
-    if (mouseX < posX + 100 && mouseX > posX && mouseY > posY - 25 && mouseY < posY) {
-      
-      
-    if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
-      // Orange
-      fill(255, 135, 0);
-    } else if (driverID.equals("bottas") || driverID.equals("hamilton")) {
-      // Light blue
-      fill(0, 210, 190);
-    } else if (driverID.equals("vettel") || driverID.equals("raikkonen")) {
-      // Red
-      fill(220, 0, 0);
-    } else if (driverID.equals("ericsson") || driverID.equals("leclerc")) {
-      // White and Red
-      fill(155, 0, 0);
-    } else if (driverID.equals("gasly") || driverID.equals("brendon_hartley")) {
-      // Blue
-      fill(0, 50, 255);
-    } else if (driverID.equals("grosjean") || driverID.equals("kevin_magnussen")) {
-      // Grey
-      fill(90, 90, 90);
-    } else if (driverID.equals("hulkenberg") || driverID.equals("sainz")) {
-      // Yellow
-      fill(255, 245, 0);
-    } else if (driverID.equals("ricciardo") || driverID.equals("max_verstappen")) {
-      // Purple
-      fill(0, 50, 125);
-    } else if (driverID.equals("ocon") || driverID.equals("perez")) {
-      // Pink
-      fill(245, 150, 200);
-    } else if (driverID.equals("sirotkin") || driverID.equals("stroll")) {
-      // White and Blue
-      fill(255, 255, 255);
-    }
-    text(driverCode, 1500, posY);
-    
-    println(pointsPerRaceMap.size());
-    
-     if(mousePressed) {
-       activatedDriversMap.put(driverID, true);
-       driverResultsLoaded = false;
-       selectedDriv = driverID;
-     }
+      if (mousePressed && !doOnce) {
+        println(activatedDriversMap.get(driverID));
+        if (activatedDriversMap.get(driverID))  activatedDriversMap.put(driverID, false);
+        else activatedDriversMap.put(driverID, true);
+        driverResultsLoaded = false;
+        selectedDriv = driverID;
+        doOnce = true;
+
+        JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+        float[] pointsPerRaceList = new float[dataRaces.size()];   
+        float[] roundsArray = new float[dataRaces.size()];
+        // for each race
+        for (int j = 0; j < dataRaces.size(); j++) {
+          JSONObject dataRace = (JSONObject) dataRaces.get(j);
+          JSONArray results = dataRace.getJSONArray("Results");
+          JSONObject result = (JSONObject) results.get(0);
+          String dID = result.getJSONObject("Driver").getString("driverId");
+          float points = Float.parseFloat(result.getString("points"));
+          pointsPerRaceList[j] = points;
+          pointsPerRaceMap.put(dID, pointsPerRaceList);
+          roundsArray[j] = Float.parseFloat(dataRace.getString("round"));
+        }
+      }
     }
   }
+
+  // Graph graph for each active driver
+  int idx = 0;
+  int clr = red;
+  for (Map.Entry me : activatedDriversMap.entrySet()) {
+    if ((boolean) me.getValue()) {
+      String driverID = (String) me.getKey();
+      if(pointsPerRaceMap.get(driverID) != null) {
+        
+         if (!activatedDriversMap.get(driverID)) {
+          } else {
+            if (driverID.equals("alonso") || driverID.equals("vandoorne")) {
+              clr = color(255, 135, 0);
+            } else if (driverID.equals("bottas") || driverID.equals("hamilton")) {
+              // Light blue
+              clr = color(0, 210, 190);
+            } else if (driverID.equals("vettel") || driverID.equals("raikkonen")) {
+              // Red
+              clr = color(220, 0, 0);
+            } else if (driverID.equals("ericsson") || driverID.equals("leclerc")) {
+              // White and Red
+              clr = color(155, 0, 0);
+            } else if (driverID.equals("gasly") || driverID.equals("brendon_hartley")) {
+              // Blue
+              clr = color(0, 50, 255);
+            } else if (driverID.equals("grosjean") || driverID.equals("kevin_magnussen")) {
+              // Grey
+              clr = color(90, 90, 90);
+            } else if (driverID.equals("hulkenberg") || driverID.equals("sainz")) {
+              // Yellow
+              clr = color(255, 245, 0);
+            } else if (driverID.equals("ricciardo") || driverID.equals("max_verstappen")) {
+              // Purple
+              clr = color(0, 50, 125);
+            } else if (driverID.equals("ocon") || driverID.equals("perez")) {
+              // Pink
+              clr = color(245, 150, 200);
+            } else if (driverID.equals("sirotkin") || driverID.equals("stroll")) {
+              // White and Blue
+              clr = color(255, 255, 255);
+            }
+          }
+        
+        charts.get(driverID).setLineColour(clr);
+        charts.get(driverID).setData(new float[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, pointsPerRaceMap.get(driverID));
+        
+        if(!axisShown) {
+          // Axis formatting and labels.
+          charts.get(driverID).showXAxis(true); 
+          charts.get(driverID).showYAxis(true); 
+          charts.get(driverID).setYFormat("# Points");
+        }
+        else {
+          charts.get(driverID).showXAxis(false); 
+          charts.get(driverID).showYAxis(false); 
+        }
+          
+        // Symbol colours
+        charts.get(driverID).setPointColour(color(255));
+        charts.get(driverID).setPointSize(5);
+        charts.get(driverID).setAxisLabelColour(color(255));
+        charts.get(driverID).setAxisColour(color(255));
+        charts.get(driverID).setMinY(0);
+        charts.get(driverID).setMaxY(25);
+        charts.get(driverID).setMaxX(21);
+        charts.get(driverID).setMinX(1);
+        fill(255);
+        stroke(255);
+        charts.get(driverID).setShowEdge(true);
+        charts.get(driverID).setLineWidth(2);
+        charts.get(driverID).draw(15, 140, 1450, canvasHeight - 210);
+        
+        // Title
+        textFont(titleFont);
+        text("Formula 1 Driver Statistics Per Race", 140, 80);
+        float textHeight = textAscent();
+        textFont(smallFont);
+        text("Season " + season, 140, 80 + textHeight);
+        textSize(21);
+      }
+    }
+    idx++;
+  }
 }
+
+void mouseReleased() {
+  doOnce = false;
+}
+
 
 // General Pitstops
 int maxDistance = canvasWidth - 200;

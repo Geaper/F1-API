@@ -149,7 +149,7 @@ void bar(int pageIndex) {
   switch(pageIndex) {
     // Initial
   case 0:
-    currentPage = 0;
+    currentPage = 99;
     break;
     // Circuits
   case 1:
@@ -405,21 +405,6 @@ void page0() {
   if (keyPressed || mousePressed) currentPage = 99;
 }
 
-void seasonSlider() { 
-  if (cp5.get("season") != null) {
-    cp5.addSlider("season")
-      .setPosition(canvasWidth/2 - 250, canvasHeight - 15)
-      .setColorBackground(color(255, 0, 0))
-      .setColorActive(color(127, 0, 0))
-      .setColorTickMark(color(0, 0, 0))
-      .setSize(450, 15)
-      .setRange(2015, 2018) // values can range from big to small as well
-      .setValue(2015)
-      .setNumberOfTickMarks(4)
-      .setSliderMode(Slider.FLEXIBLE);
-  }
-}
-
 void page99() {
 
   noTint();
@@ -430,6 +415,9 @@ void page99() {
   if (cp5.get("season") != null) cp5.get("season").hide();
   if (cp5.get("qualifying") != null) cp5.get("qualifying").hide();
   if (cp5.get("race") != null) cp5.get("race").hide();
+  if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+  if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+  
   buttonBar.hide();
 
   // Menu
@@ -547,14 +535,15 @@ void page1() {
 
   // Hide controls
   if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
-  if (cp5.get("season") != null) cp5.get("season").hide();
+  if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
 
   //shape(map, 0, 0, canvasWidth, canvasHeight - 100);
   fill(255, 0, 0);    
 
   // Season Slider
   if (!dataLoaded) {
-    seasonSlider();
+    circuitBar2();
+    if(cp5.get("circuitBar2") != null) cp5.get("circuitBar2").show();
 
     circuitHovered = new boolean[racesMap.size()];
     // Marker Image
@@ -732,8 +721,6 @@ void page2() {
       .setItemHeight(30)
       .addItems(driverStandingsList);
 
-    seasonSlider();
-
     // Buttons for Qualifying and Race
     cp5.addButton("qualifying").setPosition(100, 100).setSize(100, 75);
     cp5.addButton("race").setPosition(200, 100).setSize(100, 75);
@@ -836,6 +823,7 @@ void page4() {
   background(38);
 
   if (!dataLoaded) {
+    if(cp5.get("barSeason") != null) cp5.get("barSeason").show();
     JSONObject data = loadJSONObject(apiURL + season + "/constructors.json").getJSONObject("MRData"); //TODO change year
     constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
 
@@ -1095,8 +1083,7 @@ void page7() {
 
    background(38);
   if (!dataLoaded) {
-    seasonBar();
-    driverPointsLineChart = new XYChart[20];
+    driverPointsLineChart = new XYChart[25];
     JSONObject data = loadJSONObject(apiURL + season + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
     for (int i=0; i < driversJSON.size(); i++) {
@@ -1108,7 +1095,7 @@ void page7() {
       charts.put(driverID, new XYChart(this));
     }
     
-    JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+    JSONArray dataRaces = loadJSONObject(apiURL + season + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
     float[] pointsPerRaceList = new float[dataRaces.size()];   
     float[] roundsArray = new float[dataRaces.size()];
     // for each race
@@ -1129,18 +1116,16 @@ void page7() {
   fill(255);
 
   // For each one of them show details on the bottom and enable to user to click them to see the details
-  textSize(21);
-  int posY = 15;
+  textSize(25);
+  int posY = 40;
   int posX = 1500;
   int[] colors = new int[driversJSON.size()];
   for (int i=0; i < driversJSON.size(); i++) {
     JSONObject driverJSON = (JSONObject) driversJSON.get(i);
-    String driverName = driverJSON.getString("givenName") + " " + driverJSON.getString("familyName");
     String driverID = driverJSON.getString("driverId");
-    PImage driverImage = driverImages.get(driverID);
     String driverCode = driverJSON.getString("code");
 
-    posY += 35;
+    posY += 40;
     if (!activatedDriversMap.get(driverID)) {
       fill(255);
     } else {
@@ -1233,8 +1218,8 @@ void page7() {
         driverResultsLoaded = false;
         selectedDriv = driverID;
         doOnce = true;
-
-        JSONArray dataRaces = loadJSONObject(apiURL + selectedSeason + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
+        
+        JSONArray dataRaces = loadJSONObject(apiURL + season + "/drivers/" + selectedDriv + "/results.json").getJSONObject("MRData").getJSONObject("RaceTable").getJSONArray("Races"); 
         float[] pointsPerRaceList = new float[dataRaces.size()];   
         float[] roundsArray = new float[dataRaces.size()];
         // for each race
@@ -1293,9 +1278,14 @@ void page7() {
               clr = color(255, 255, 255);
             }
           }
+          
+        float[] rounds = new float[pointsPerRaceMap.get(driverID).length];
+        for(int t = 0; t < rounds.length; t++) {
+           rounds[t] = t + 1;
+        }
         
         charts.get(driverID).setLineColour(clr);
-        charts.get(driverID).setData(new float[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21}, pointsPerRaceMap.get(driverID));
+        charts.get(driverID).setData(rounds, pointsPerRaceMap.get(driverID));
         
         if(!axisShown) {
           // Axis formatting and labels.
@@ -1309,19 +1299,20 @@ void page7() {
         }
           
         // Symbol colours
-        charts.get(driverID).setPointColour(color(255));
+         fill(255);
+        charts.get(driverID).setPointColour(255);
         charts.get(driverID).setPointSize(5);
-        charts.get(driverID).setAxisLabelColour(color(255));
-        charts.get(driverID).setAxisColour(color(255));
+        charts.get(driverID).setAxisLabelColour(255);
+        charts.get(driverID).setAxisColour(255);
+        charts.get(driverID).setAxisValuesColour(255);
         charts.get(driverID).setMinY(0);
         charts.get(driverID).setMaxY(25);
         charts.get(driverID).setMaxX(21);
         charts.get(driverID).setMinX(1);
-        fill(255);
         stroke(255);
         charts.get(driverID).setShowEdge(true);
         charts.get(driverID).setLineWidth(2);
-        charts.get(driverID).draw(15, 140, 1450, canvasHeight - 210);
+        charts.get(driverID).draw(15, 140, 1450, canvasHeight - 170);
         
         // Title
         textFont(titleFont);
@@ -1329,7 +1320,7 @@ void page7() {
         float textHeight = textAscent();
         textFont(smallFont);
         text("Season " + season, 140, 80 + textHeight);
-        textSize(21);
+        textSize(25);
       }
     }
     idx++;
@@ -1345,6 +1336,7 @@ void mouseReleased() {
 int maxDistance = canvasWidth - 200;
 void page8() {
   if (!dataLoaded) {
+    if(cp5.get("barCircuit") != null) cp5.get("barCircuit").show();
     background(255);
     // Default round is the first
     JSONObject data = loadJSONObject(apiURL + selectedSeason + "/" + selectedRound + "/pitstops.json").getJSONObject("MRData"); //TODO change year
@@ -1559,6 +1551,32 @@ void circuitBar() {
       .setColorForeground(lighterRed)
       .addItems(circuitNames);
   }
+}
+
+void circuitBar2() {
+
+  if (cp5.get("barCircuit2") == null) {
+    ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
+
+    circuitBar = cp5.addButtonBar("barCircuit2")
+      .setPosition(0, canvasHeight - 30)
+      .setSize(canvasWidth, 30)
+      .setColorBackground(0)
+      .setColorActive(red)
+      .setColorForeground(lighterRed)
+      .addItems(circuitNames);
+  }
+}
+
+void barCircuit2(int circuitIndex) {
+  ArrayList<String> circuitNames = new ArrayList<String>(circuitsMap.keySet());
+  println();
+  String circuitID = circuitNames.get(circuitIndex);
+
+  // go to the circuit in the map 
+  MapPosition mapPosition = mapPositions.get(circuitID);
+  Location mapLocation = new Location(mapPosition.getX(), mapPosition.getY());
+  unfoldingMap.zoomAndPanTo(mapLocation, 6);
 }
 
 // Call back event of menu bar

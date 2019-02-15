@@ -20,14 +20,12 @@ import controlP5.*;
 import processing.video.*;
 import org.gicentre.utils.stat.*;
 import java.util.Arrays;
-import grafica.*;
 
 private Movie video;
 private boolean videoLoaded = false;
 private boolean videoRunning = false;
 private ControlP5 cp5;
 // PitStop plot
-private GPlot plot;
 private BarChart pitStopBarChart;
 private BarChart constructorsChart;
 private XYChart[] driverPointsLineChart;
@@ -388,12 +386,6 @@ void draw() {
     page0();
     break;
   }
-  // Debug
-  fill(255, 0, 0);
-  textSize(10);
-  text("X: " + mouseX + " ,Y: " + mouseY, canvasWidth - 200, 40);
-
-  text("Zoom: " + unfoldingMap.getZoom(), canvasWidth -400, 40);
 }
 
 // Page 0
@@ -437,6 +429,9 @@ void page99() {
   if (cp5.get("season") != null) cp5.get("season").hide();
   if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
   if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+  if (cp5.get("barCircuit2") != null) cp5.get("barCircuit2").hide();
+  if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+  if(video != null) video.stop();
   
   buttonBar.hide();
 
@@ -556,6 +551,9 @@ void page1() {
   // Hide controls
   if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
   if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+  if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+  if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+  if(video != null) video.stop();
 
   //shape(map, 0, 0, canvasWidth, canvasHeight - 100);
   fill(255, 0, 0);    
@@ -563,7 +561,7 @@ void page1() {
   // Season Slider
   if (!dataLoaded) {
     circuitBar2();
-    if(cp5.get("circuitBar2") != null) cp5.get("circuitBar2").show();
+    if(cp5.get("barCircuit2") != null) cp5.get("barCircuit2").show();
 
     circuitHovered = new boolean[racesMap.size()];
     // Marker Image
@@ -592,7 +590,7 @@ void page1() {
 
     // Draw points on the map
     stroke(255);
-    fill(38);
+    fill(38, 38, 38, 200);
     ellipse(mapPosition.x, mapPosition.y, 0.75 * scale, 0.75 * scale);
     
     // Pretty?
@@ -606,6 +604,7 @@ void page1() {
       fill(255);
       stroke(38);
       rect(50,100,300,150);
+      line(mapPosition.x, mapPosition.y, 350, 250);
       
       // Title on top of the video
       textSize(21);
@@ -649,6 +648,7 @@ void page2() {
   if (!dataLoaded) { 
     
     circuitBar3();
+    if(cp5.get("barCircuit3") != null) cp5.get("barCircuit3").show();
     // Line
     fill(255);
     line(0, 30, canvasWidth, 30);
@@ -674,7 +674,7 @@ void page2() {
 
     // Title
     //cp5.addTextlabel("label").setText(circuitName).setPosition(canvasWidth/2 - 100,30).setColorValue(0xffffff00).setFont(createFont("Georgia",20));
-    
+    if(video != null) video.stop();
     video = new Movie(this, "circuit_videos/" + circuitID + ".mp4");
     image(video, 50, 150, video.width * 0.75, video.height * 0.75);
     video.loop();
@@ -717,7 +717,7 @@ void page2() {
 
       cp5.addScrollableList("Driver Standings")
         .setPosition(canvasWidth/2, 45)
-        .setSize(canvasWidth/2 - 10, canvasHeight/2 - 45)
+        .setSize(canvasWidth/2 - 10, canvasHeight/2 - 70)
         .setColorBackground(color(0))
         .setColorActive(red)
         .setColorForeground(red)
@@ -812,6 +812,15 @@ void page4() {
   image(constructors2Img,0,0);
 
   if (!dataLoaded) {
+    
+     if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+    if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+    if (cp5.get("barCircuit2") != null) cp5.get("barCircuit2").hide();
+    if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+    if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+    if(video != null) video.stop();
+    
+    
     if(cp5.get("barSeason") != null) cp5.get("barSeason").show();
     JSONObject data = loadJSONObject(apiURL + season + "/constructors.json").getJSONObject("MRData"); //TODO change year
     constructorsJSON = data.getJSONObject("ConstructorTable").getJSONArray("Constructors");
@@ -928,6 +937,14 @@ void page5() {
 void page6() {
   PFont font = createFont("serif bold", 25);
   if (!dataLoaded) {
+    
+    if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+    if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+    if (cp5.get("barCircuit2") != null) cp5.get("barCircuit2").hide();
+    if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+    if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+    if(video != null) video.stop();
+    
     //background(255);
     JSONObject data = loadJSONObject(apiURL + "status.json").getJSONObject("MRData");
     finishStatusesJSON = data.getJSONObject("StatusTable").getJSONArray("Status");
@@ -1070,6 +1087,14 @@ void page7() {
 
    background(38);
   if (!dataLoaded) {
+    
+     if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+    if (cp5.get("barCircuit") != null) cp5.get("barCircuit").hide();
+    if (cp5.get("barCircuit2") != null) cp5.get("barCircuit2").hide();
+    if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+    if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+    if(video != null) video.stop();
+    
     driverPointsLineChart = new XYChart[25];
     JSONObject data = loadJSONObject(apiURL + "2018" + "/drivers.json").getJSONObject("MRData"); //TODO change year
     driversJSON = data.getJSONObject("DriverTable").getJSONArray("Drivers");
@@ -1323,6 +1348,13 @@ void mouseReleased() {
 int maxDistance = canvasWidth - 200;
 void page8() {
   if (!dataLoaded) {
+    
+    if (cp5.get("barSeason") != null) cp5.get("barSeason").hide();
+    if (cp5.get("barCircuit2") != null) cp5.get("barCircuit2").hide();
+    if (cp5.get("barCircuit3") != null) cp5.get("barCircuit3").hide();
+    if (cp5.get("Driver Standings") != null) cp5.get("Driver Standings").hide();
+    if(video != null) video.stop();
+    
     if(cp5.get("barCircuit") != null) cp5.get("barCircuit").show();
     background(255);
     // Default round is the first
@@ -1384,8 +1416,8 @@ void page8() {
     dataLoaded = true;
   }
   // Background
-  background(255);
-  tint(255, 230);
+  //background(255);
+  //tint(255, 230);
   image(pitStopImg, 0, 0);
   textSize(18);
 
@@ -1507,9 +1539,9 @@ void page8() {
   // Best and Worst
   textSize(22);
   fill(0, 255, 0);
-  text("Best: " + best + " (" + teamBest + ")", 1000, 50);
+  text("Best: " + best + " (" + teamBest + ")", 20, 50);
   fill(255, 0, 0);
-  text("Worst: " + worst + " (" + teamWorst + ")", 1300, 50);
+  text("Worst: " + worst + " (" + teamWorst + ")", 320, 50);
 }
 
 void loadCircuitPointOnMap() {
